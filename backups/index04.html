@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive D3 Timeline</title>
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Load Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            padding: 0;
+            margin: 0;
+        }
+        /* Custom CSS for the Timeline Visualization */
+        .timeline-container {
+            overflow-x: auto; /* Allows horizontal scrolling/panning */
+            width: 100%;
+            height: 350px;
+            cursor: grab;
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        svg {
+            display: block;
+        }
+        .main-line {
+            stroke: #4f46e5;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+        .timeline-event-line {
+            stroke: #374151;
+            stroke-width: 1.5;
+        }
+        .timeline-event-dot {
+            fill: #4f46e5;
+            stroke: white;
+            stroke-width: 2;
+            cursor: pointer;
+            transition: r 0.1s;
+        }
+        .timeline-event-dot:hover {
+            r: 8;
+        }
+        .timeline-label {
+            fill: #374151;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            pointer-events: all; /* Ensure click events are captured */
+        }
+        /* Style for D3 Axis */
+        .axis line, .axis path {
+            stroke: #9ca3af;
+        }
+        .axis text {
+            fill: #6b7280;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Interactive Timeline Editor (D3.js)</h1>
+
+        <!-- Input Card -->
+        <div id="input-card" class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 id="form-title" class="text-xl font-semibold text-indigo-700 mb-4">Add New Timeline Event</h2>
+            <form id="timeline-form" class="space-y-4">
+                <div>
+                    <label for="event-date" class="block text-sm font-medium text-gray-700">Date & Time</label>
+                    <input type="datetime-local" id="event-date" required
+                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                </div>
+                <div>
+                    <label for="event-desc" class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea id="event-desc" required maxlength="100"
+                              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" rows="2"></textarea>
+                </div>
+                <div class="flex flex-wrap gap-2 pt-2">
+                    <button type="submit" id="submit-btn"
+                            class="flex-1 min-w-[120px] bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                        Add Event
+                    </button>
+                    <button type="button" id="delete-btn"
+                            class="flex-1 min-w-[120px] bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition duration-150 shadow-md hidden">
+                        Delete Event
+                    </button>
+                    <button type="button" id="cancel-btn"
+                            class="flex-1 min-w-[120px] bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400 transition duration-150 shadow-md hidden">
+                        Cancel Edit
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Timeline Visualization Area -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Visualization (Pan and Zoom Enabled)</h2>
+            <p class="text-sm text-gray-500 mb-4">Click any event dot or label to edit/delete it.</p>
+            <div id="timeline-container" class="timeline-container">
+                <svg id="timeline-svg" width="100%" height="350">
+                    <g id="svg-g" transform="translate(50, 100)">
+                        <!-- x-axis group (will move with zoom) -->
+                        <g id="x-axis-group" class="axis"></g>
+                        <!-- zoomable content group -->
+                        <g id="zoomable-content"></g>
+                    </g>
+                </svg>
+            </div>
+            <p id="user-id-display" class="mt-2 text-sm text-gray-500 text-right">User ID: Loading...</p>
+        </div>
+
+        <!-- Data Management and Raw Data View -->
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Data Management</h2>
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button id="save-data-btn" class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-150 shadow-md">
+                    Save to Cloud
+                </button>
+                <button id="show-data-btn" class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition duration-150 shadow-md">
+                    View/Load Raw Data
+                </button>
+                <button id="export-json-btn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                    Export JSON
+                </button>
+                <button id="export-csv-btn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                    Export CSV
+                </button>
+                <button id="export-xml-btn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                    Export XML
+                </button>
+                <button id="import-file-btn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                    Import File (.json/.csv)
+                </button>
+            </div>
+
+            <!-- Import File Input (Hidden) -->
+            <input type="file" id="import-file-input" accept=".json,.csv" class="hidden">
+
+            <!-- Raw Data Textarea -->
+            <div id="raw-data-area" class="mt-4 hidden p-4 border border-gray-200 rounded-lg">
+                <p class="text-sm text-gray-600 mb-2">Edit the JSON below and click "Load from Text" to update the timeline.</p>
+                <textarea id="data-json" class="w-full h-64 p-3 border border-gray-300 rounded-lg font-mono text-sm" placeholder="[ { &quot;date&quot;: &quot;2024-01-01T10:00:00.000Z&quot;, &quot;description&quot;: &quot;Event One&quot; } ]"></textarea>
+                <button id="load-from-text-btn" class="mt-2 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                    Load from Text
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Alerts/Confirmations (MUST replace alert/confirm) -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 transform transition-all">
+            <h3 id="modal-title" class="text-lg font-bold text-gray-900 mb-2"></h3>
+            <p id="modal-message" class="text-sm text-gray-700 mb-4"></p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-confirm" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md hidden">
+                    Confirm
+                </button>
+                <button id="modal-close" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-150">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Global State and Constants ---
+        const SVG_HEIGHT = 350;
+        const margin = { top: 15, right: 50, bottom: 50, left: 50 };
+        const LINE_Y = SVG_HEIGHT / 2; // Center the timeline line vertically
+
+        let timelineData = []; // Local cache for timeline events
+        let editingId = null; // ID of the event currently being edited
+
+        const svg = d3.select("#timeline-svg");
+        const svgG = d3.select("#svg-g");
+        const xAxisGroup = d3.select("#x-axis-group");
+        const zoomableContent = d3.select("#zoomable-content");
+
+        const TIMELINE_COLLECTION = 'timeline_events';
+
+        // Firestore Globals (Provided by Canvas environment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-timeline-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth;
+        let userId = null;
+
+        // --- Utility Functions ---
+
+        const showModal = (title, message) => {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('custom-modal').classList.remove('hidden');
+            document.getElementById('modal-close').onclick = () => {
+                document.getElementById('custom-modal').classList.add('hidden');
+            };
+        };
+
+        const generateId = () => {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        };
+
+        const formatAxis = d3.timeFormat("%Y %b %d");
+
+        /** Converts a Date object to a string format suitable for <input type="datetime-local"> */
+        const toLocalDatetimeString = (date) => {
+            const pad = (n) => n < 10 ? '0' + n : n;
+            const y = date.getFullYear();
+            const m = pad(date.getMonth() + 1);
+            const d = pad(date.getDate());
+            const h = pad(date.getHours());
+            const min = pad(date.getMinutes());
+            return `${y}-${m}-${d}T${h}:${min}`;
+        };
+
+        // --- Firebase/Firestore Integration ---
+
+        const initializeFirebase = async () => {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase config is missing. Cannot initialize Firestore.");
+                return;
+            }
+
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('Debug');
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                    } else {
+                        // Fallback user ID if anonymous sign-in fails
+                        userId = crypto.randomUUID();
+                    }
+                    document.getElementById('user-id-display').textContent = `User ID: ${userId.substring(0, 8)}...`;
+                    loadDataFromStorage(); // Start loading data once user is authenticated/identified
+                });
+
+            } catch (error) {
+                console.error("Firebase Initialization or Auth Error:", error);
+                showModal("Setup Error", "Failed to connect to cloud storage. Please check console for details.");
+            }
+        };
+
+        const saveDataToStorage = async () => {
+            if (!db || !userId) {
+                showModal("Error", "Cloud storage not ready. Please wait or check connection.");
+                return;
+            }
+
+            try {
+                // Documents must be stored in the private path: /artifacts/{appId}/users/{userId}/{collectionName}/{documentId}
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/${TIMELINE_COLLECTION}/main`);
+                
+                // Convert Date objects to JavaScript native Date objects for Firestore (which handles them)
+                const serializableData = timelineData.map(d => ({
+                    id: d.id,
+                    date: d.date, // Firestore handles Date objects
+                    description: d.description
+                }));
+                
+                await setDoc(docRef, { events: serializableData });
+                showModal("Success", "Timeline data successfully saved to cloud storage!");
+
+            } catch (e) {
+                console.error("Error saving document: ", e);
+                showModal("Error", "Failed to save data to cloud storage.");
+            }
+        };
+
+        const loadDataFromStorage = () => {
+            if (!db || !userId) return;
+
+            // Set up real-time listener
+            const docRef = doc(db, `artifacts/${appId}/users/${userId}/${TIMELINE_COLLECTION}/main`);
+
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists() && docSnap.data().events) {
+                    const loadedEvents = docSnap.data().events;
+                    timelineData = loadedEvents.map(d => ({
+                        ...d,
+                        // Convert Firestore Timestamp (or native Date) back to Date object
+                        date: d.date.toDate ? d.date.toDate() : new Date(d.date)
+                    }));
+                    timelineData.sort((a, b) => a.date - b.date); // Keep data sorted
+                    drawTimeline(timelineData);
+                    console.log("Timeline data loaded and updated in real-time.");
+                } else {
+                    console.log("No initial data found. Drawing empty timeline.");
+                    drawTimeline([]);
+                }
+            }, (error) => {
+                console.error("Error listening to document: ", error);
+                showModal("Error", "Failed to load data in real-time.");
+            });
+        };
+
+        // --- Data Serialization and Import/Export ---
+
+        const formatDataForExport = () => {
+            // Converts Date objects to ISO strings for consistent export
+            return timelineData.map(d => ({
+                id: d.id,
+                date: d.date.toISOString(),
+                description: d.description
+            }));
+        };
+
+        const downloadFile = (data, filename, type) => {
+            const blob = new Blob([data], { type: type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showModal("Export Complete", `Data saved as ${filename}.`);
+        };
+
+        const exportJson = () => {
+            const data = formatDataForExport();
+            downloadFile(JSON.stringify(data, null, 2), 'timeline_data.json', 'application/json');
+        };
+
+        const exportCsv = () => {
+            const data = formatDataForExport();
+            if (data.length === 0) return showModal("Export Error", "No data to export.");
+
+            const headers = ["id", "date", "description"];
+            const csvRows = [
+                headers.join(','),
+                ...data.map(d => [d.id, `"${d.date}"`, `"${d.description.replace(/"/g, '""')}"`].join(','))
+            ];
+            downloadFile(csvRows.join('\n'), 'timeline_data.csv', 'text/csv');
+        };
+
+        const exportXml = () => {
+            const data = formatDataForExport();
+            let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<timeline>\n';
+            data.forEach(d => {
+                xml += `  <event id="${d.id}">\n`;
+                xml += `    <date>${d.date}</date>\n`;
+                xml += `    <description>${d.description}</description>\n`;
+                xml += `  </event>\n`;
+            });
+            xml += '</timeline>';
+            downloadFile(xml, 'timeline_data.xml', 'application/xml');
+        };
+
+        const parseCsv = (csvText) => {
+            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+            if (lines.length < 2) return [];
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                // Simple parsing: handles fields wrapped in quotes for commas
+                const values = lines[i].match(/(?:\"([^\"]*)\"|([^,]+))/g)
+                                        .map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+
+                if (values.length === headers.length) {
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = values[index];
+                    });
+                    data.push(obj);
+                }
+            }
+            return data;
+        };
+
+        const loadDataFromFileContent = (content, format) => {
+            let parsedData = [];
+            let success = true;
+
+            try {
+                if (format === 'json') {
+                    parsedData = JSON.parse(content);
+                } else if (format === 'csv') {
+                    parsedData = parseCsv(content);
+                }
+
+                // Map and validate the imported data
+                const newTimelineData = parsedData.map(item => {
+                    const date = new Date(item.date);
+                    if (isNaN(date)) {
+                        throw new Error(`Invalid date found: ${item.date}`);
+                    }
+                    return {
+                        id: item.id && typeof item.id === 'string' ? item.id : generateId(),
+                        date: date,
+                        description: item.description || "Untitled Event"
+                    };
+                });
+
+                timelineData = newTimelineData;
+                saveDataToStorage(); // Immediately save imported data
+                drawTimeline(timelineData);
+                showModal("Import Success", `Successfully loaded ${timelineData.length} events from the ${format.toUpperCase()} file.`);
+
+            } catch (error) {
+                console.error("Data Load Error:", error);
+                showModal("Data Error", `Failed to load data. Please ensure the file is valid ${format.toUpperCase()} format. Error: ${error.message}`);
+                success = false;
+            }
+            return success;
+        };
+
+        const handleFileSelect = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                loadDataFromFileContent(content, fileExtension);
+            };
+            reader.readAsText(file);
+        };
+
+        // --- Raw Data View/Load ---
+
+        const rawDataArea = document.getElementById('raw-data-area');
+        const dataJsonTextarea = document.getElementById('data-json');
+
+        const toggleRawDataArea = () => {
+            const isHidden = rawDataArea.classList.contains('hidden');
+            if (isHidden) {
+                displayRawData();
+                rawDataArea.classList.remove('hidden');
+            } else {
+                rawDataArea.classList.add('hidden');
+            }
+        };
+
+        const displayRawData = () => {
+            const dataForDisplay = formatDataForExport();
+            dataJsonTextarea.value = JSON.stringify(dataForDisplay, null, 2);
+        };
+
+        const loadFromText = () => {
+            const jsonStr = dataJsonTextarea.value;
+            loadDataFromFileContent(jsonStr, 'json'); // Reuse the JSON parsing logic
+            if (!rawDataArea.classList.contains('hidden')) {
+                rawDataArea.classList.add('hidden'); // Hide after successful load
+            }
+        };
+
+        // --- Core Event Handlers ---
+
+        const handleAddOrUpdateEvent = (e) => {
+            e.preventDefault();
+
+            const dateStr = document.getElementById('event-date').value;
+            const description = document.getElementById('event-desc').value.trim();
+
+            const date = new Date(dateStr);
+
+            if (isNaN(date) || !description) {
+                showModal("Invalid Input", "Please select a valid date/time and provide a description.");
+                return;
+            }
+
+            const eventData = {
+                date: date,
+                description: description,
+            };
+
+            if (editingId) {
+                // Update existing event in the local array
+                const index = timelineData.findIndex(d => d.id === editingId);
+                if (index !== -1) {
+                    timelineData[index] = { ...timelineData[index], ...eventData };
+                    showModal("Success", "Event successfully updated!");
+                }
+            } else {
+                // Add new event
+                timelineData.push({ ...eventData, id: generateId() });
+                showModal("Success", "New event successfully added!");
+            }
+            
+            saveDataToStorage(); // Save changes to storage (triggers redraw via onSnapshot)
+            resetForm();
+        };
+
+        const handleDeleteEvent = () => {
+            if (!editingId) return;
+
+            // Use modal for confirmation instead of confirm()
+            const modalConfirmBtn = document.getElementById('modal-confirm');
+            document.getElementById('modal-title').textContent = 'Confirm Deletion';
+            document.getElementById('modal-message').textContent = `Are you sure you want to delete the event with ID ${editingId.substring(0, 8)}...?`;
+            modalConfirmBtn.classList.remove('hidden');
+            document.getElementById('custom-modal').classList.remove('hidden');
+
+            const handleConfirm = async () => {
+                modalConfirmBtn.removeEventListener('click', handleConfirm);
+                document.getElementById('custom-modal').classList.add('hidden');
+
+                // Filter out the event by its ID
+                const initialLength = timelineData.length;
+                timelineData = timelineData.filter(d => d.id !== editingId);
+
+                if (timelineData.length < initialLength) {
+                    showModal("Success", "Event successfully deleted!");
+                    saveDataToStorage(); // Save changes to storage (triggers redraw via onSnapshot)
+                } else {
+                    showModal("Error", "Could not find event to delete.");
+                }
+                resetForm();
+            };
+
+            modalConfirmBtn.onclick = handleConfirm;
+            document.getElementById('modal-close').onclick = () => {
+                modalConfirmBtn.classList.add('hidden');
+                document.getElementById('custom-modal').classList.add('hidden');
+                resetForm();
+            };
+        };
+
+        // --- Form Interaction ---
+
+        const resetForm = () => {
+            editingId = null;
+            document.getElementById('timeline-form').reset();
+            document.getElementById('form-title').textContent = 'Add New Timeline Event';
+            document.getElementById('submit-btn').textContent = 'Add Event';
+            document.getElementById('delete-btn').classList.add('hidden');
+            document.getElementById('cancel-btn').classList.add('hidden');
+        };
+
+        const editEvent = (event) => {
+            editingId = event.id;
+            document.getElementById('form-title').textContent = 'Edit Existing Event';
+            document.getElementById('event-date').value = toLocalDatetimeString(event.date);
+            document.getElementById('event-desc').value = event.description;
+            document.getElementById('submit-btn').textContent = 'Update Event';
+            document.getElementById('delete-btn').classList.remove('hidden');
+            document.getElementById('cancel-btn').classList.remove('hidden');
+
+            // Scroll to the form
+            document.getElementById('input-card').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        // --- D3 Visualization ---
+
+        const drawTimeline = (data) => {
+            // Clear previous zoomable content and axis
+            zoomableContent.selectAll("*").remove();
+            xAxisGroup.selectAll("*").remove();
+
+            if (data.length === 0) {
+                zoomableContent.append("text")
+                    .attr("x", 500)
+                    .attr("y", LINE_Y - margin.top)
+                    .attr("text-anchor", "middle")
+                    .attr("fill", "#9ca3af")
+                    .text("No events yet. Add your first event above!");
+                return;
+            }
+
+            // Calculate the minimum and maximum dates
+            const minDate = d3.min(data, d => d.date);
+            const maxDate = d3.max(data, d => d.date);
+
+            // Add some padding to the time range (e.g., 20% on each side)
+            const timePadding = (maxDate.getTime() - minDate.getTime()) * 0.2;
+            const domainStart = new Date(minDate.getTime() - timePadding);
+            const domainEnd = new Date(maxDate.getTime() + timePadding);
+
+            // Determine SVG Width based on complexity/density.
+            const baseWidth = 1000;
+            const densityFactor = data.length * 150; // Increased factor for better spacing
+            const fullWidth = Math.max(baseWidth, densityFactor);
+            const contentWidth = fullWidth - margin.left - margin.right;
+            
+            // Set the SVG width attribute for better D3 scale management
+            svg.attr("width", fullWidth);
+            svgG.attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+
+            // 1. Scales - Initial scale (xScale is the UN-ZOOMED base scale)
+            const xScale = d3.scaleTime()
+                .domain([domainStart, domainEnd])
+                .range([0, contentWidth]);
+
+            // 2. Axis - Initial draw
+            const initialDrawAxis = (scale) => {
+                xAxisGroup.call(d3.axisBottom(scale)
+                    .tickFormat(formatAxis)
+                    .ticks(d3.timeYear.every(1))
+                    .tickSize(0))
+                    .attr("transform", `translate(0, ${LINE_Y - margin.top})`)
+                    .selectAll("text")
+                    .attr("transform", "rotate(-15)")
+                    .style("text-anchor", "end");
+            };
+            initialDrawAxis(xScale);
+
+
+            // 3. Main Timeline Bar (inside zoomableContent)
+            zoomableContent.append("line")
+                .attr("class", "main-line timeline-event-line")
+                .attr("x1", 0)
+                .attr("x2", contentWidth)
+                .attr("y1", LINE_Y - margin.top)
+                .attr("y2", LINE_Y - margin.top);
+
+            // --- Staggering Logic Implementation (The Fix) ---
+            
+            // Sort data chronologically to ensure consistent alternating placement
+            data.sort((a, b) => a.date - b.date);
+            
+            const eventGroup = zoomableContent.selectAll(".event-group")
+                .data(data, d => d.id)
+                .join(
+                    enter => {
+                        // Determine vertical offset based on index (simple alternating staggering)
+                        // This prevents horizontal overlap of text labels on initial load.
+                        const verticalOffset = (d, i) => (i % 2 === 0 ? -40 : 40);
+
+                        const group = enter.append("g")
+                            .attr("class", "event-group")
+                            .attr("transform", d => `translate(${xScale(d.date)}, ${LINE_Y - margin.top})`);
+
+                        // Vertical connector line
+                        group.append("line")
+                            .attr("class", "event-line timeline-event-line")
+                            .attr("y1", 0)
+                            // Draw the line to be 10px shorter than the text 'y' position for a clean look
+                            .attr("y2", (d, i) => verticalOffset(d, i) > 0 ? verticalOffset(d, i) - 10 : verticalOffset(d, i) + 10);
+
+                        // Event dot
+                        group.append("circle")
+                            .attr("class", "timeline-event-dot")
+                            .attr("r", 6)
+                            .attr("cy", 0)
+                            .on("click", (event, d) => editEvent(d));
+
+                        // Text Label (Description)
+                        group.append("text")
+                            .attr("class", "timeline-label")
+                            .attr("y", (d, i) => verticalOffset(d, i))
+                            // Adjust alignment based on position: below the line, align to top of text (0.5em)
+                            .attr("dy", (d, i) => verticalOffset(d, i) > 0 ? "1em" : "-0.5em") 
+                            .attr("text-anchor", "middle")
+                            .text(d => d.description)
+                            .on("click", (event, d) => editEvent(d));
+
+                        // Tooltip (Date)
+                        group.append("title")
+                            .text(d => `${d.description} - ${d.date.toLocaleString()}`);
+
+                        return group;
+                    },
+                    update => {
+                        // Update position horizontally (using initial scale for reference, zoom handles the rest)
+                        update.transition().duration(500)
+                            .attr("transform", d => `translate(${xScale(d.date)}, ${LINE_Y - margin.top})`);
+
+                        // Update description (if changed)
+                        update.select("text").text(d => d.description);
+                        update.select("title").text(d => `${d.description} - ${d.date.toLocaleString()}`);
+
+                        return update;
+                    },
+                    exit => {
+                        exit.transition().duration(500).style("opacity", 0).remove();
+                    }
+                );
+            // --- End Staggering Logic ---
+
+            // 5. Zoom/Pan Behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.5, 15]) // Enable zooming: 0.5x minimum, 15x maximum
+                .translateExtent([[-contentWidth, 0], [contentWidth * 2, SVG_HEIGHT]]) // Allow generous panning
+                .on("zoom", (event) => {
+                    const transform = event.transform;
+                    
+                    // 1. Create a new scale based on the zoom transformation
+                    const newXScale = transform.rescaleX(xScale);
+
+                    // 2. Update the Axis
+                    xAxisGroup.call(d3.axisBottom(newXScale)
+                        .tickFormat(formatAxis)
+                        .ticks(d3.timeYear.every(1)) // Use year ticks, they will adjust on zoom
+                        .tickSize(0))
+                        .selectAll("text")
+                        .attr("transform", "rotate(-15)")
+                        .style("text-anchor", "end");
+
+                    // 3. Apply the pan and zoom transformation to the zoomable content
+                    zoomableContent.attr("transform", transform);
+                });
+
+            // Apply zoom handler to the SVG
+            svg.call(zoom).on("dblclick.zoom", null);
+            
+            // Re-apply the identity transform on initial draw to ensure clean state
+            svg.call(zoom.transform, d3.zoomIdentity);
+        };
+
+        // --- Initialization and Event Listeners ---
+
+        document.getElementById('timeline-form').addEventListener('submit', handleAddOrUpdateEvent);
+        document.getElementById('delete-btn').addEventListener('click', handleDeleteEvent);
+        document.getElementById('cancel-btn').addEventListener('click', resetForm);
+        
+        // Data Management Listeners
+        document.getElementById('save-data-btn').addEventListener('click', saveDataToStorage);
+        document.getElementById('show-data-btn').addEventListener('click', toggleRawDataArea);
+        document.getElementById('load-from-text-btn').addEventListener('click', loadFromText);
+        
+        // Export Listeners
+        document.getElementById('export-json-btn').addEventListener('click', exportJson);
+        document.getElementById('export-csv-btn').addEventListener('click', exportCsv);
+        document.getElementById('export-xml-btn').addEventListener('click', exportXml);
+
+        // Import Listeners
+        document.getElementById('import-file-btn').addEventListener('click', () => {
+            document.getElementById('import-file-input').click();
+        });
+        document.getElementById('import-file-input').addEventListener('change', handleFileSelect);
+
+
+        // Initial Load
+        window.onload = initializeFirebase;
+
+    </script>
+</body>
+</html>
