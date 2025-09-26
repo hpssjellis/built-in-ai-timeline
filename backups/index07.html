@@ -321,9 +321,10 @@
         }
         window.executeChromeAIStreaming = executeChromeAIStreaming; // Make it globally accessible for the onclick attribute
 
-        // --- Local Storage Integration (Replaces Firebase) ---
+        // --- Local Storage Integration ---
 
-        const saveDataToLocalStorage = () => {
+        /** Core function to save timeline data to local storage silently. */
+        const _saveDataCore = () => {
             try {
                 // Convert Date objects to ISO strings for storage
                 const serializableData = timelineData.map(d => ({
@@ -333,7 +334,6 @@
                 }));
 
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serializableData));
-                showModal("Success", "Timeline data successfully saved to local storage!");
 
             } catch (e) {
                 console.error("Error saving to local storage: ", e);
@@ -341,9 +341,16 @@
             }
         };
 
+        /** Public function for manual saving (shows notification). */
+        const saveDataToLocalStorage = () => {
+            _saveDataCore();
+            showModal("Success", "Timeline data successfully saved to local storage!");
+        };
+
         const loadDataFromLocalStorage = () => {
             try {
                 const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+                
                 if (storedData) {
                     const loadedEvents = JSON.parse(storedData);
                     timelineData = loadedEvents.map(d => ({
@@ -351,16 +358,35 @@
                         // Convert ISO string back to Date object
                         date: new Date(d.date)
                     }));
-                    timelineData.sort((a, b) => a.date - b.date); // Keep data sorted
-                    drawTimeline(timelineData);
                     console.log("Timeline data loaded from local storage.");
                 } else {
-                    console.log("No initial data found in local storage. Drawing empty timeline.");
-                    drawTimeline([]);
+                    // --- Inject Default Initialization ---
+                    console.log("No initial data found. Loading default timeline events.");
+                    const defaultEvents = [
+                        {
+                            id: generateId(),
+                            // Date 3 days ago
+                            date: new Date(Date.now() - 86400000 * 3), 
+                            description: "App Initialized (D3.js & Local Storage)"
+                        },
+                        {
+                            id: generateId(),
+                            // Date 5 days from now
+                            date: new Date(Date.now() + 86400000 * 5), 
+                            description: "Future Goal: Complete D3 Timeline Features"
+                        }
+                    ];
+                    timelineData = defaultEvents;
+                    _saveDataCore(); // Save defaults immediately so they persist
+                    // --- End Inject Default Initialization ---
                 }
+
+                timelineData.sort((a, b) => a.date - b.date); // Ensure data is sorted
+                drawTimeline(timelineData);
             } catch (error) {
                 console.error("Error loading from local storage: ", error);
                 showModal("Error", "Failed to load data from local storage. Starting with empty timeline.");
+                timelineData = [];
                 drawTimeline([]);
             }
         };
@@ -488,7 +514,7 @@
                 });
 
                 timelineData = newTimelineData;
-                saveDataToLocalStorage(); // Immediately save imported data
+                _saveDataCore(); // Immediately save imported data silently
                 drawTimeline(timelineData);
                 showModal("Load Success", `Successfully loaded ${timelineData.length} events from the ${format.toUpperCase()} data.`);
 
@@ -578,10 +604,10 @@
                 timelineData.push(eventData);
             }
             
-            // Sort, redraw, and save
+            // Sort, redraw, and save silently
             timelineData.sort((a, b) => a.date - b.date);
             drawTimeline(timelineData);
-            saveDataToLocalStorage(); // Use local storage save function
+            _saveDataCore(); // Save silently
             resetForm();
         };
 
@@ -609,7 +635,7 @@
             if (!editingId) return;
             timelineData = timelineData.filter(d => d.id !== editingId);
             drawTimeline(timelineData);
-            saveDataToLocalStorage(); // Use local storage save function
+            _saveDataCore(); // Save silently
             resetForm();
             showModal("Event Deleted", "The selected timeline event has been removed.");
         };
@@ -747,10 +773,13 @@
         document.getElementById('timeline-form').addEventListener('submit', handleAddOrUpdateEvent);
         document.getElementById('delete-btn').addEventListener('click', deleteEvent);
         document.getElementById('cancel-btn').addEventListener('click', resetForm);
-        // Bind the button to the new local storage function
+        // Bind the button to the public local storage function
         document.getElementById('save-data-btn').addEventListener('click', saveDataToLocalStorage); 
         document.getElementById('show-data-btn').addEventListener('click', toggleRawDataArea);
         document.getElementById('load-from-text-btn').addEventListener('click', loadFromText);
+        document.getElementById('export-json-btn').addEventListener('click', exportJson);
+        document.getElementById('export-csv-btn').addEventListener('click', exportCsv);
+        document.getElementById('export-xml-btn').addEventListener('click', exportXml);
         document.getElementById('import-file-btn').addEventListener('click', () => importFileInput.click());
         importFileInput.addEventListener('change', handleFileSelect);
 
