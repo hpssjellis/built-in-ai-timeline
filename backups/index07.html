@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive D3 Timeline</title>
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Load Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+            padding: 0;
+            margin: 0;
+        }
+        /* Custom CSS for the Timeline Visualization */
+        .timeline-container {
+            overflow-x: auto; /* Allows horizontal scrolling/panning */
+            width: 100%;
+            height: 350px;
+            cursor: grab;
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        svg {
+            display: block;
+        }
+        .main-line {
+            stroke: #4f46e5;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+        .timeline-event-line {
+            stroke: #374151;
+            stroke-width: 1.5;
+        }
+        .timeline-event-dot {
+            fill: #4f46e5;
+            stroke: white;
+            stroke-width: 2;
+            cursor: pointer;
+            transition: r 0.1s;
+        }
+        .timeline-event-dot:hover {
+            r: 8;
+        }
+        .timeline-label {
+            fill: #374151;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            pointer-events: all; /* Ensure click events are captured */
+        }
+        /* Style for D3 Axis */
+        .axis line, .axis path {
+            stroke: #9ca3af;
+        }
+        .axis text {
+            fill: #6b7280;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Interactive Timeline Editor (D3.js)</h1>
+
+        <!-- Input Card -->
+        <div id="input-card" class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 id="form-title" class="text-xl font-semibold text-indigo-700 mb-4">Add New Timeline Event</h2>
+            <form id="timeline-form" class="space-y-4">
+                <div>
+                    <label for="event-date" class="block text-sm font-medium text-gray-700">Date & Time</label>
+                    <input type="datetime-local" id="event-date" required
+                           class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                </div>
+                <div>
+                    <label for="event-desc" class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea id="event-desc" required maxlength="100"
+                              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" rows="2"></textarea>
+                </div>
+                <div class="flex flex-wrap gap-2 pt-2">
+                    <button type="submit" id="submit-btn"
+                            class="flex-1 min-w-[120px] bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                        Add Event
+                    </button>
+                    <button type="button" id="delete-btn"
+                            class="flex-1 min-w-[120px] bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition duration-150 shadow-md hidden">
+                        Delete Event
+                    </button>
+                    <button type="button" id="cancel-btn"
+                            class="flex-1 min-w-[120px] bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400 transition duration-150 shadow-md hidden">
+                        Cancel Edit
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Timeline Visualization Area -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Visualization (Pan and Zoom Enabled)</h2>
+            <p class="text-sm text-gray-500 mb-4">Click any event dot or label to edit/delete it.</p>
+            <div id="timeline-container" class="timeline-container">
+                <svg id="timeline-svg" width="100%" height="350">
+                    <g id="svg-g" transform="translate(50, 100)">
+                        <!-- x-axis group (will move with zoom) -->
+                        <g id="x-axis-group" class="axis"></g>
+                        <!-- zoomable content group -->
+                        <g id="zoomable-content"></g>
+                    </g>
+                </svg>
+            </div>
+            <p id="user-id-display" class="mt-2 text-sm text-gray-500 text-right">User ID: Local/Offline</p>
+        </div>
+
+        <!-- Data Management and Raw Data View -->
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Data Management</h2>
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button id="save-data-btn" class="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-150 shadow-md">
+                    Save to Local Storage
+                </button>
+                <button id="show-data-btn" class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition duration-150 shadow-md">
+                    View/Load Raw Data
+                </button>
+                <button id="export-json-btn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                    Export JSON
+                </button>
+                <button id="export-csv-btn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                    Export CSV
+                </button>
+                <button id="export-xml-btn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                    Export XML
+                </button>
+                <button id="import-file-btn" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                    Import File (.json/.csv)
+                </button>
+            </div>
+
+            <!-- Import File Input (Hidden) -->
+            <input type="file" id="import-file-input" accept=".json,.csv" class="hidden">
+
+            <!-- Raw Data Textarea and AI Integration -->
+            <div id="raw-data-area" class="mt-4 hidden p-4 border border-gray-200 rounded-lg">
+                
+                <!-- Chrome AI Integration Section -->
+                <p class="text-sm font-semibold text-gray-700 mb-2 border-b pb-2">Chrome Built-in AI Generator</p>
+                <p class="text-xs text-red-600 mb-2 font-semibold">NOTE: This feature requires Chrome flag 'chrome://flags/#enable-built-in-ai' to be enabled to work.</p>
+                <div class="space-y-3 mb-4">
+                    <label for="chrome-ai-prompt-input" class="block text-sm font-medium text-gray-700">Prompt to Generate Data (The AI will output raw JSON below)</label>
+                    <textarea id="chrome-ai-prompt-input" rows="3" placeholder="Example: 'Generate 5 key milestones for the history of space travel, outputted as a JSON array with date (ISO 8601 format) and description fields.'"
+                              class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">Generate 3 famous historical events as a JSON array. Each object must have a 'date' (ISO 8601 format) and 'description' field.
+                    </textarea>
+                    <button id="generate-ai-json-btn" onclick="executeChromeAIStreaming()" class="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition duration-150 shadow-md w-full">
+                        <span id="ai-btn-text">Generate JSON via Chrome AI</span>
+                        <span id="ai-loading-spinner" class="hidden font-semibold">... Generating (Check console for LanguageModel availability) ...</span>
+                    </button>
+                </div>
+
+                <p id="ai-status" class="text-xs italic text-gray-500 mb-4">Status: Ready.</p>
+                <!-- End Chrome AI Integration Section -->
+
+                <p class="text-sm font-semibold text-gray-700 mb-2 border-b pb-2">Raw JSON Data</p>
+                <p class="text-xs text-gray-600 mb-2">Review or edit the JSON below before loading it into the timeline.</p>
+                
+                <textarea id="data-json" class="w-full h-64 p-3 border border-gray-300 rounded-lg font-mono text-sm" placeholder="[ { &quot;date&quot;: &quot;2024-01-01T10:00:00.000Z&quot;, &quot;description&quot;: &quot;Event One&quot; } ]"></textarea>
+                
+                <button id="load-from-text-btn" class="mt-2 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                    Load JSON into Timeline
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Alerts/Confirmations (MUST replace alert/confirm) -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 transform transition-all">
+            <h3 id="modal-title" class="text-lg font-bold text-gray-900 mb-2"></h3>
+            <p id="modal-message" class="text-sm text-gray-700 mb-4"></p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-confirm" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md hidden">
+                    Confirm
+                </button>
+                <button id="modal-close" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition duration-150">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Logic (Now completely self-contained) -->
+    <script type="module">
+        // --- Global State and Constants ---
+        const SVG_HEIGHT = 350;
+        const margin = { top: 15, right: 50, bottom: 50, left: 50 };
+        const LINE_Y = SVG_HEIGHT / 2; // Center the timeline line vertically
+        const LOCAL_STORAGE_KEY = 'timelineData_v1';
+
+        let timelineData = []; // Local cache for timeline events
+        let editingId = null; // ID of the event currently being edited
+
+        const svg = d3.select("#timeline-svg");
+        const svgG = d3.select("#svg-g");
+        const xAxisGroup = d3.select("#x-axis-group");
+        const zoomableContent = d3.select("#zoomable-content");
+
+        // --- Utility Functions ---
+
+        const showModal = (title, message) => {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('custom-modal').classList.remove('hidden');
+            document.getElementById('modal-close').onclick = () => {
+                document.getElementById('custom-modal').classList.add('hidden');
+            };
+        };
+
+        const generateId = () => {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        };
+
+        const formatAxis = d3.timeFormat("%Y %b %d");
+
+        /** Converts a Date object to a string format suitable for <input type="datetime-local"> */
+        const toLocalDatetimeString = (date) => {
+            const pad = (n) => n < 10 ? '0' + n : n;
+            const y = date.getFullYear();
+            const m = pad(date.getMonth() + 1);
+            const d = pad(date.getDate());
+            const h = pad(date.getHours());
+            const min = pad(date.getMinutes());
+            return `${y}-${m}-${d}T${h}:${min}`;
+        };
+
+        // --- Chrome AI Logic (LanguageModel API) ---
+        let chromeAILanguageModelSession = null;
+        let chromeAITimerInterval = null;
+
+        const chromeAIPromptInput = document.getElementById('chrome-ai-prompt-input');
+        const chromeAIStatus = document.getElementById('ai-status');
+        const generateButton = document.getElementById('generate-ai-json-btn');
+        const btnText = document.getElementById('ai-btn-text');
+        const spinner = document.getElementById('ai-loading-spinner');
+        const dataJsonTextarea = document.getElementById('data-json');
+
+
+        function startChromeAITimer() {
+            let seconds = 0;
+            chromeAIStatus.textContent = "Working... 0s";
+            chromeAITimerInterval = setInterval(() => {
+                seconds++;
+                chromeAIStatus.textContent = `Working... ${seconds}s`;
+            }, 1000);
+        }
+
+        function stopChromeAITimer(message) {
+            if (chromeAITimerInterval) {
+                clearInterval(chromeAITimerInterval);
+                chromeAITimerInterval = null;
+            }
+            chromeAIStatus.textContent = message;
+        }
+
+        /**
+         * Main function to create the session and execute the streaming prompt using Chrome's LanguageModel API.
+         */
+        async function executeChromeAIStreaming() {
+            generateButton.disabled = true;
+            generateButton.classList.add('opacity-50');
+            btnText.classList.add('hidden');
+            spinner.classList.remove('hidden');
+            
+            try {
+                if (!('LanguageModel' in window)) {
+                    stopChromeAITimer("Error: LanguageModel API not available. Enable Chrome flag 'chrome://flags/#enable-built-in-ai'.");
+                    return;
+                }
+
+                startChromeAITimer();
+                dataJsonTextarea.value = ""; // Clear output area before streaming starts
+
+                if (!chromeAILanguageModelSession) {
+                    chromeAIStatus.textContent = 'Creating AI session...';
+                    // Create the session only once
+                    chromeAILanguageModelSession = await LanguageModel.create();
+                    chromeAIStatus.textContent = 'Session created. Sending prompt...';
+                }
+
+                const promptValue = chromeAIPromptInput.value;
+                if (!promptValue.trim()) {
+                    stopChromeAITimer('Please enter a prompt.');
+                    return;
+                }
+
+                // Use promptStreaming to get the response as an async iterable
+                const stream = await chromeAILanguageModelSession.promptStreaming(promptValue);
+                chromeAIStatus.textContent = 'Streaming response...';
+
+                // Stream the response directly into the raw data textarea
+                for await (const chunk of stream) {
+                    dataJsonTextarea.value += chunk;
+                }
+
+                stopChromeAITimer("Streaming complete! Click 'Load JSON into Timeline' to apply.");
+
+            } catch (error) {
+                stopChromeAITimer("An error occurred during streaming. Check the console.");
+                console.error("Chrome AI Error:", error);
+                showModal("Chrome AI Error", "Failed to communicate with the built-in AI model. Ensure the required Chrome flag is enabled and the browser is restarted.");
+            } finally {
+                generateButton.disabled = false;
+                generateButton.classList.remove('opacity-50');
+                btnText.classList.remove('hidden');
+                spinner.classList.add('hidden');
+            }
+        }
+        window.executeChromeAIStreaming = executeChromeAIStreaming; // Make it globally accessible for the onclick attribute
+
+        // --- Local Storage Integration (Replaces Firebase) ---
+
+        const saveDataToLocalStorage = () => {
+            try {
+                // Convert Date objects to ISO strings for storage
+                const serializableData = timelineData.map(d => ({
+                    id: d.id,
+                    date: d.date.toISOString(), 
+                    description: d.description
+                }));
+
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serializableData));
+                showModal("Success", "Timeline data successfully saved to local storage!");
+
+            } catch (e) {
+                console.error("Error saving to local storage: ", e);
+                showModal("Error", "Failed to save data to local storage.");
+            }
+        };
+
+        const loadDataFromLocalStorage = () => {
+            try {
+                const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (storedData) {
+                    const loadedEvents = JSON.parse(storedData);
+                    timelineData = loadedEvents.map(d => ({
+                        ...d,
+                        // Convert ISO string back to Date object
+                        date: new Date(d.date)
+                    }));
+                    timelineData.sort((a, b) => a.date - b.date); // Keep data sorted
+                    drawTimeline(timelineData);
+                    console.log("Timeline data loaded from local storage.");
+                } else {
+                    console.log("No initial data found in local storage. Drawing empty timeline.");
+                    drawTimeline([]);
+                }
+            } catch (error) {
+                console.error("Error loading from local storage: ", error);
+                showModal("Error", "Failed to load data from local storage. Starting with empty timeline.");
+                drawTimeline([]);
+            }
+        };
+
+        const initializeApp = () => {
+            loadDataFromLocalStorage();
+        };
+
+        // --- Data Serialization and Import/Export ---
+
+        const formatDataForExport = () => {
+            // Converts Date objects to ISO strings for consistent export
+            return timelineData.map(d => ({
+                id: d.id,
+                date: d.date.toISOString(),
+                description: d.description
+            }));
+        };
+
+        const downloadFile = (data, filename, type) => {
+            const blob = new Blob([data], { type: type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showModal("Export Complete", `Data saved as ${filename}.`);
+        };
+
+        const exportJson = () => {
+            const data = formatDataForExport();
+            if (data.length === 0) return showModal("Export Error", "No data to export.");
+
+            downloadFile(JSON.stringify(data, null, 2), 'timeline_data.json', 'application/json');
+        };
+
+        const exportCsv = () => {
+            const data = formatDataForExport();
+            if (data.length === 0) return showModal("Export Error", "No data to export.");
+
+            const headers = ["id", "date", "description"];
+            const csvRows = [
+                headers.join(','),
+                ...data.map(d => [d.id, `"${d.date}"`, `"${d.description.replace(/"/g, '""')}"`].join(','))
+            ];
+            downloadFile(csvRows.join('\n'), 'timeline_data.csv', 'text/csv');
+        };
+
+        const exportXml = () => {
+            const data = formatDataForExport();
+            let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<timeline>\n';
+            data.forEach(d => {
+                xml += `  <event id="${d.id}">\n`;
+                xml += `    <date>${d.date}</date>\n`;
+                xml += `    <description>${d.description}</description>\n`;
+                xml += `  </event>\n`;
+            });
+            xml += '</timeline>';
+            downloadFile(xml, 'timeline_data.xml', 'application/xml');
+        };
+
+        const parseCsv = (csvText) => {
+            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+            if (lines.length < 2) return [];
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                // Simple parsing: handles fields wrapped in quotes for commas
+                const values = lines[i].match(/(?:\"([^\"]*)\"|([^,]+))/g)
+                                        .map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+
+                if (values.length === headers.length) {
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = values[index];
+                    });
+                    data.push(obj);
+                }
+            }
+            return data;
+        };
+
+        const loadDataFromFileContent = (content, format) => {
+            let parsedData = [];
+            let success = true;
+
+            try {
+                if (format === 'json') {
+                    // Clean up markdown/extra text often included around JSON blocks
+                    let cleanContent = content.trim();
+                    if (cleanContent.startsWith('```json')) {
+                        cleanContent = cleanContent.substring(7);
+                    }
+                    if (cleanContent.startsWith('```')) { // General markdown block cleanup
+                        cleanContent = cleanContent.substring(3);
+                    }
+                    if (cleanContent.endsWith('```')) {
+                        cleanContent = cleanContent.substring(0, cleanContent.length - 3);
+                    }
+                    parsedData = JSON.parse(cleanContent.trim());
+                } else if (format === 'csv') {
+                    parsedData = parseCsv(content);
+                }
+
+                if (!Array.isArray(parsedData)) {
+                    throw new Error("Parsed data is not a valid JSON array.");
+                }
+
+                // Map and validate the imported data
+                const newTimelineData = parsedData.map(item => {
+                    const date = new Date(item.date);
+                    if (isNaN(date)) {
+                        throw new Error(`Invalid date found: ${item.date}`);
+                    }
+                    return {
+                        id: item.id && typeof item.id === 'string' ? item.id : generateId(),
+                        date: date,
+                        description: item.description || "Untitled Event"
+                    };
+                });
+
+                timelineData = newTimelineData;
+                saveDataToLocalStorage(); // Immediately save imported data
+                drawTimeline(timelineData);
+                showModal("Load Success", `Successfully loaded ${timelineData.length} events from the ${format.toUpperCase()} data.`);
+
+            } catch (error) {
+                console.error("Data Load Error:", error);
+                showModal("Data Error", `Failed to load data. Please ensure the data is valid ${format.toUpperCase()} format. Error: ${error.message}`);
+                success = false;
+            }
+            return success;
+        };
+
+        const handleFileSelect = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                loadDataFromFileContent(content, fileExtension);
+            };
+            reader.readAsText(file);
+        };
+
+        // --- Raw Data View/Load ---
+
+        const rawDataArea = document.getElementById('raw-data-area');
+        const showDataBtn = document.getElementById('show-data-btn');
+        const loadFromTextBtn = document.getElementById('load-from-text-btn');
+        const importFileInput = document.getElementById('import-file-input');
+        const importFileBtn = document.getElementById('import-file-btn');
+
+
+        const toggleRawDataArea = () => {
+            const isHidden = rawDataArea.classList.contains('hidden');
+            if (isHidden) {
+                displayRawData();
+                rawDataArea.classList.remove('hidden');
+                showDataBtn.textContent = 'Hide Raw Data';
+            } else {
+                rawDataArea.classList.add('hidden');
+                showDataBtn.textContent = 'View/Load Raw Data';
+            }
+        };
+
+        const displayRawData = () => {
+            const dataForDisplay = formatDataForExport();
+            dataJsonTextarea.value = JSON.stringify(dataForDisplay, null, 2);
+        };
+
+        const loadFromText = () => {
+            const jsonStr = dataJsonTextarea.value;
+            loadDataFromFileContent(jsonStr, 'json');
+        };
+
+        // --- Core Event Handlers ---
+
+        const handleAddOrUpdateEvent = (e) => {
+            e.preventDefault();
+
+            const dateStr = document.getElementById('event-date').value;
+            const description = document.getElementById('event-desc').value.trim();
+
+            const date = new Date(dateStr);
+
+            if (isNaN(date) || !description) {
+                showModal("Invalid Input", "Please select a valid date/time and provide a description.");
+                return;
+            }
+
+            const eventData = {
+                date: date,
+                description: description,
+            };
+
+            if (editingId) {
+                // Update existing event in the local array
+                const index = timelineData.findIndex(d => d.id === editingId);
+                if (index !== -1) {
+                    timelineData[index].date = eventData.date;
+                    timelineData[index].description = eventData.description;
+                }
+                editingId = null; // Clear editing state
+            } else {
+                // Add new event
+                eventData.id = generateId();
+                timelineData.push(eventData);
+            }
+            
+            // Sort, redraw, and save
+            timelineData.sort((a, b) => a.date - b.date);
+            drawTimeline(timelineData);
+            saveDataToLocalStorage(); // Use local storage save function
+            resetForm();
+        };
+
+        const resetForm = () => {
+            document.getElementById('timeline-form').reset();
+            document.getElementById('form-title').textContent = 'Add New Timeline Event';
+            document.getElementById('submit-btn').textContent = 'Add Event';
+            document.getElementById('delete-btn').classList.add('hidden');
+            document.getElementById('cancel-btn').classList.add('hidden');
+            editingId = null;
+        };
+
+        const editEvent = (d) => {
+            editingId = d.id;
+            document.getElementById('event-date').value = toLocalDatetimeString(d.date);
+            document.getElementById('event-desc').value = d.description;
+
+            document.getElementById('form-title').textContent = 'Edit Existing Event';
+            document.getElementById('submit-btn').textContent = 'Update Event';
+            document.getElementById('delete-btn').classList.remove('hidden');
+            document.getElementById('cancel-btn').classList.remove('hidden');
+        };
+
+        const deleteEvent = () => {
+            if (!editingId) return;
+            timelineData = timelineData.filter(d => d.id !== editingId);
+            drawTimeline(timelineData);
+            saveDataToLocalStorage(); // Use local storage save function
+            resetForm();
+            showModal("Event Deleted", "The selected timeline event has been removed.");
+        };
+
+        // --- D3 Visualization Logic ---
+
+        let x, y, xAxis;
+        let zoomHandler; // Declared globally now
+
+        const drawTimeline = (data) => {
+            if (data.length === 0) {
+                zoomableContent.html('<text x="50%" y="50%" text-anchor="middle" font-size="16" fill="#9CA3AF">No timeline data available. Add an event or generate data with the AI.</text>');
+                xAxisGroup.html(''); // Clear the axis too
+                return;
+            }
+            
+            // 1. Scales
+            const extent = d3.extent(data, d => d.date);
+            const domainStart = d3.timeMinute.offset(extent[0], -60); // 1 hour before first event
+            const domainEnd = d3.timeMinute.offset(extent[1], 60 * 24 * 7); // 1 week after last event
+
+            // Calculate SVG width: minimum 800px, or dynamically sized based on event density/span
+            const timeSpanDays = (domainEnd - domainStart) / (1000 * 60 * 60 * 24);
+            // Give 50px per day span, minimum 800px
+            const svgWidth = Math.max(800, timeSpanDays * 50); 
+            
+            // Set the SVG element's width to allow for margins
+            svg.attr("width", svgWidth + margin.left + margin.right);
+
+            x = d3.scaleTime()
+                .domain([domainStart, domainEnd])
+                .range([0, svgWidth]);
+
+            // Vertical scale (not time-based, just for staggered layout)
+            y = d3.scalePoint()
+                .domain([0, 1]) // Two vertical levels for staggering
+                .range([LINE_Y - 50, LINE_Y + 50]);
+
+            // 2. X-Axis Setup
+            xAxis = d3.axisBottom(x)
+                .ticks(d3.timeDay.every(1)) // Show ticks for every day
+                .tickFormat(formatAxis);
+
+            xAxisGroup.attr("transform", `translate(0, ${LINE_Y + 20})`).call(xAxis);
+
+            // 3. Zoom/Pan Setup (Applies only to the SVG group containing content)
+            if (!zoomHandler) {
+                zoomHandler = d3.zoom()
+                    .scaleExtent([0.5, 5]) // Allow 50% to 500% zoom
+                    .on("zoom", (event) => {
+                        // Rescale the original X scale based on the zoom transform
+                        const newX = event.transform.rescaleX(x);
+                        
+                        // Redraw the axis using the new scaled X
+                        xAxisGroup.call(d3.axisBottom(newX).ticks(d3.timeDay.every(1)).tickFormat(formatAxis));
+                        
+                        // Apply the zoom transform to all content elements
+                        zoomableContent.attr("transform", event.transform);
+                    });
+            }
+            
+            // Update the zoom handler's bounds (extent) and translation limits 
+            zoomHandler
+                // Set the zoom extent to the size of the inner drawing area (svgWidth x SVG_HEIGHT)
+                .extent([[0, 0], [svgWidth, SVG_HEIGHT]])
+                // Set the translation limits to keep the content visible within the area
+                .translateExtent([[0, -Infinity], [svgWidth, Infinity]]);
+            
+            // Re-apply zoom to the SVG group to ensure updated bounds are registered
+            svgG.call(zoomHandler);
+
+            // 4. Draw Timeline Line (Static horizontal line)
+            zoomableContent.selectAll(".main-line")
+                .data([0])
+                .join("line")
+                .attr("class", "main-line")
+                .attr("x1", 0)
+                .attr("y1", LINE_Y)
+                .attr("x2", svgWidth)
+                .attr("y2", LINE_Y);
+            
+            // 5. Draw Events and Labels
+            const events = zoomableContent.selectAll(".timeline-event").data(data, d => d.id);
+            
+            // Enter selection
+            const eventGroup = events.enter()
+                .append("g")
+                .attr("class", "timeline-event")
+                .attr("transform", d => `translate(${x(d.date)}, ${LINE_Y})`);
+            
+            // Staggered Y position calculation (alternate between upper and lower levels)
+            data.forEach((d, i) => {
+                d.yLevel = i % 2; 
+            });
+            
+            // Event lines connecting the dot to the main line
+            eventGroup.append("line")
+                .attr("class", "timeline-event-line")
+                .attr("x1", 0)
+                .attr("y1", 0)
+                .attr("x2", 0)
+                .attr("y2", d => y(d.yLevel) - LINE_Y);
+
+            // Event Dots
+            eventGroup.append("circle")
+                .attr("class", "timeline-event-dot")
+                .attr("r", 6)
+                .on("click", (event, d) => editEvent(d));
+
+            // Labels
+            eventGroup.append("text")
+                .attr("class", "timeline-label")
+                .attr("text-anchor", "middle")
+                .attr("x", 0)
+                .attr("y", d => y(d.yLevel) - LINE_Y - 5) // Position label above/below dot
+                .text(d => d.description)
+                .on("click", (event, d) => editEvent(d));
+
+            // Update selection
+            events.transition().duration(500)
+                .attr("transform", d => `translate(${x(d.date)}, ${LINE_Y})`);
+            
+            events.select(".timeline-event-line")
+                .attr("y2", d => y(d.yLevel) - LINE_Y);
+
+            events.select(".timeline-label")
+                .attr("y", d => y(d.yLevel) - LINE_Y - 5)
+                .text(d => d.description);
+
+            // Exit selection
+            events.exit().remove();
+        };
+
+        // --- Event Listeners ---
+        document.getElementById('timeline-form').addEventListener('submit', handleAddOrUpdateEvent);
+        document.getElementById('delete-btn').addEventListener('click', deleteEvent);
+        document.getElementById('cancel-btn').addEventListener('click', resetForm);
+        // Bind the button to the new local storage function
+        document.getElementById('save-data-btn').addEventListener('click', saveDataToLocalStorage); 
+        document.getElementById('show-data-btn').addEventListener('click', toggleRawDataArea);
+        document.getElementById('load-from-text-btn').addEventListener('click', loadFromText);
+        document.getElementById('import-file-btn').addEventListener('click', () => importFileInput.click());
+        importFileInput.addEventListener('change', handleFileSelect);
+
+
+        // --- Initialization ---
+        window.onload = initializeApp;
+
+    </script>
+</body>
+</html>
