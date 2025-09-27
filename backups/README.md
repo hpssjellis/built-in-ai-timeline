@@ -21,7 +21,7 @@ https://hpssjellis.github.io/built-in-ai-timeline/backups/index00.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index06.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index07.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index08.html   switched to vis.js
-1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index09.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index09.html  stable diffusion for fun
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index10.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index11.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index12.html
