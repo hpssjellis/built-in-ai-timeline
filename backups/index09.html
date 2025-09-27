@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGPU Stable Diffusion Text-to-Image</title>
+
+    <script type="module">
+        // Import the pipeline function from the Xenova/transformers.js library
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+        // --- Global Variables (starting with my) ---
+        let myGeneratorPipeline = null;
+        let myStartTime = 0;
+
+        // --- DOM Elements ---
+        const myOutputText = document.getElementById('myOutputText');
+        const myStatus = document.getElementById('myStatus');
+        const myAskButton = document.getElementById('myAskButton');
+        const myLoadButton = document.getElementById('myLoadButton');
+        const myOutputImage = document.getElementById('myOutputImage');
+        const myPromptArea = document.getElementById('myPromptArea');
+
+
+        // --- Functions (starting with my) ---
+        
+        /**
+         * Loads the Stable Diffusion pipeline from Hugging Face Model Hub (ONNX-optimized).
+         */
+        window.myLoadModel = async () => {
+            if (myGeneratorPipeline) {
+                myStatus.textContent = 'Model already loaded.';
+                return;
+            }
+
+            myLoadButton.disabled = true;
+            myAskButton.disabled = true;
+            myOutputText.textContent = 'Downloading and initializing the Stable Diffusion Model... (This is a large file)';
+            myStatus.textContent = '';
+            myStartTime = Date.now();
+
+            try {
+                // Xenova/stable-diffusion-v1-4-webgpu is a good web-optimized choice
+                myGeneratorPipeline = await pipeline(
+                    'text-to-image', 
+                    'Xenova/stable-diffusion-v1-4-webgpu',
+                    {
+                        // Progress callback for user feedback
+                        progress_callback: (myProgress) => {
+                            const myTimeElapsed = ((Date.now() - myStartTime) / 1000).toFixed(1);
+                            const myPercentage = (myProgress.progress * 100).toFixed(0);
+                            myOutputText.textContent = `Downloading... ${myPercentage}% complete. (${myTimeElapsed}s)`;
+                        }
+                    }
+                );
+                
+                myOutputText.textContent = 'Model loaded successfully. Click "Generate Image From Text".';
+                myStatus.textContent = `Initialization time: ${((Date.now() - myStartTime) / 1000).toFixed(2)} seconds.`;
+                myAskButton.disabled = false;
+
+            } catch (myError) {
+                myOutputText.textContent = 'Error loading model. Check console for details.';
+                myStatus.textContent = 'Failed.';
+                console.error("Error during model loading:", myError);
+                myLoadButton.disabled = false;
+            }
+        };
+
+        /**
+         * Generates an image based on the text prompt.
+         */
+        window.myGenerateImage = async () => {
+            if (!myGeneratorPipeline) {
+                myOutputText.textContent = 'Please load the model first.';
+                return;
+            }
+
+            myAskButton.disabled = true;
+            const myPrompt = myPromptArea.value.trim();
+
+            if (!myPrompt) {
+                myOutputText.textContent = 'Please enter a prompt to generate an image.';
+                myAskButton.disabled = false;
+                return;
+            }
+            
+            myOutputText.textContent = 'Generating image...';
+            myStatus.textContent = 'Inference started.';
+            myStartTime = Date.now();
+            myOutputImage.src = ''; // Clear previous image
+
+            try {
+                // Run the pipeline (this is the core Stable Diffusion step)
+                const myOutput = await myGeneratorPipeline(myPrompt, {
+                    // Recommended parameters for stable diffusion
+                    num_inference_steps: 20,
+                    guidance_scale: 7.5,
+                });
+
+                // The output is an Image object (or array of Images)
+                const myImage = myOutput.images[0];
+                
+                // Convert the Image to a Blob and set the image source
+                const myBlob = await myImage.toBlob();
+                myOutputImage.src = URL.createObjectURL(myBlob);
+
+                myOutputText.textContent = 'Image generated!';
+                myStatus.textContent = `Inference time: ${((Date.now() - myStartTime) / 1000).toFixed(2)} seconds.`;
+
+            } catch (myError) {
+                myOutputText.textContent = 'An error occurred during image generation.';
+                myStatus.textContent = 'Failed.';
+                console.error("Error during image generation:", myError);
+            } finally {
+                myAskButton.disabled = false;
+            }
+        };
+
+
+        // --- Initial Setup (Similar to your existing button setup) ---
+        // Expose functions to the global scope for inline onclick use
+        window.myLoadModel = myLoadModel;
+        window.myGenerateImage = myGenerateImage;
+
+        // Simplify DOM setup by removing unused webcam/description elements
+        document.addEventListener('DOMContentLoaded', () => {
+            // Renamed elements for clarity
+            document.getElementById('myAskButton').onclick = window.myGenerateImage;
+        });
+
+    </script>
+    <style>
+        /* Minimal CSS as requested */
+        body { font-family: sans-serif; padding: 20px; }
+        .myControlPanel { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
+        textarea { width: 95%; max-width: 600px; }
+        button { padding: 10px 15px; margin-right: 10px; cursor: pointer; }
+        #myOutputImage { border: 3px groove blue; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Web-Based Stable Diffusion (ONNX)</h1>
+
+    <div class="myControlPanel">
+        <h2>Model Loading</h2>
+        <input id="myLoadButton" type="button" value="Load Stable Diffusion Model" onclick="myLoadModel()"> 
+        <p><small>Data warning: This downloads a large model (several GB) to your browser cache.</small></p>
+        <p id="myOutputText">Click 'Load Stable Diffusion Model' to begin.</p>
+        <div id="myStatus"></div>
+    </div>
+
+    <div class="myControlPanel">
+        <h2>Text-to-Image Generation</h2>
+        <textarea id="myPromptArea" rows="5" cols="70" 
+            placeholder="Enter your image prompt here. Example: A photo of a futuristic cat riding a surfboard on a neon wave, digital art, highly detailed.">A stunning princess from Kabul in red, white traditional clothing, blue eyes, brown hair</textarea><br>
+        
+        <input id="myAskButton" type="button" value="Generate Image From Text" disabled>
+    </div>
+    
+    <canvas id="myCanvas" style="display: none;"></canvas>
+
+    <h2 style="margin-top: 30px;">Generated Image</h2>
+    <img src="" id="myOutputImage" width="512" height="512" alt="Generated Image Preview"><br><br>
+
+</body>
+</html>
