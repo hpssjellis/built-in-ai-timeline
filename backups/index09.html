@@ -1,166 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGPU Stable Diffusion Text-to-Image</title>
-
-    <script type="module">
-        // Import the pipeline function from the Xenova/transformers.js library
-        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-
-        // --- Global Variables (starting with my) ---
-        let myGeneratorPipeline = null;
-        let myStartTime = 0;
-
-        // --- DOM Elements ---
-        const myOutputText = document.getElementById('myOutputText');
-        const myStatus = document.getElementById('myStatus');
-        const myAskButton = document.getElementById('myAskButton');
-        const myLoadButton = document.getElementById('myLoadButton');
-        const myOutputImage = document.getElementById('myOutputImage');
-        const myPromptArea = document.getElementById('myPromptArea');
-
-
-        // --- Functions (starting with my) ---
-        
-        /**
-         * Loads the Stable Diffusion pipeline from Hugging Face Model Hub (ONNX-optimized).
-         */
-        window.myLoadModel = async () => {
-            if (myGeneratorPipeline) {
-                myStatus.textContent = 'Model already loaded.';
-                return;
-            }
-
-            myLoadButton.disabled = true;
-            myAskButton.disabled = true;
-            myOutputText.textContent = 'Downloading and initializing the Stable Diffusion Model... (This is a large file)';
-            myStatus.textContent = '';
-            myStartTime = Date.now();
-
-            try {
-                // Xenova/stable-diffusion-v1-4-webgpu is a good web-optimized choice
-                myGeneratorPipeline = await pipeline(
-                    'text-to-image', 
-                    'Xenova/stable-diffusion-v1-4-webgpu',
-                    {
-                        // Progress callback for user feedback
-                        progress_callback: (myProgress) => {
-                            const myTimeElapsed = ((Date.now() - myStartTime) / 1000).toFixed(1);
-                            const myPercentage = (myProgress.progress * 100).toFixed(0);
-                            myOutputText.textContent = `Downloading... ${myPercentage}% complete. (${myTimeElapsed}s)`;
-                        }
-                    }
-                );
-                
-                myOutputText.textContent = 'Model loaded successfully. Click "Generate Image From Text".';
-                myStatus.textContent = `Initialization time: ${((Date.now() - myStartTime) / 1000).toFixed(2)} seconds.`;
-                myAskButton.disabled = false;
-
-            } catch (myError) {
-                myOutputText.textContent = 'Error loading model. Check console for details.';
-                myStatus.textContent = 'Failed.';
-                console.error("Error during model loading:", myError);
-                myLoadButton.disabled = false;
-            }
-        };
-
-        /**
-         * Generates an image based on the text prompt.
-         */
-        window.myGenerateImage = async () => {
-            if (!myGeneratorPipeline) {
-                myOutputText.textContent = 'Please load the model first.';
-                return;
-            }
-
-            myAskButton.disabled = true;
-            const myPrompt = myPromptArea.value.trim();
-
-            if (!myPrompt) {
-                myOutputText.textContent = 'Please enter a prompt to generate an image.';
-                myAskButton.disabled = false;
-                return;
-            }
-            
-            myOutputText.textContent = 'Generating image...';
-            myStatus.textContent = 'Inference started.';
-            myStartTime = Date.now();
-            myOutputImage.src = ''; // Clear previous image
-
-            try {
-                // Run the pipeline (this is the core Stable Diffusion step)
-                const myOutput = await myGeneratorPipeline(myPrompt, {
-                    // Recommended parameters for stable diffusion
-                    num_inference_steps: 20,
-                    guidance_scale: 7.5,
-                });
-
-                // The output is an Image object (or array of Images)
-                const myImage = myOutput.images[0];
-                
-                // Convert the Image to a Blob and set the image source
-                const myBlob = await myImage.toBlob();
-                myOutputImage.src = URL.createObjectURL(myBlob);
-
-                myOutputText.textContent = 'Image generated!';
-                myStatus.textContent = `Inference time: ${((Date.now() - myStartTime) / 1000).toFixed(2)} seconds.`;
-
-            } catch (myError) {
-                myOutputText.textContent = 'An error occurred during image generation.';
-                myStatus.textContent = 'Failed.';
-                console.error("Error during image generation:", myError);
-            } finally {
-                myAskButton.disabled = false;
-            }
-        };
-
-
-        // --- Initial Setup (Similar to your existing button setup) ---
-        // Expose functions to the global scope for inline onclick use
-        window.myLoadModel = myLoadModel;
-        window.myGenerateImage = myGenerateImage;
-
-        // Simplify DOM setup by removing unused webcam/description elements
-        document.addEventListener('DOMContentLoaded', () => {
-            // Renamed elements for clarity
-            document.getElementById('myAskButton').onclick = window.myGenerateImage;
-        });
-
-    </script>
-    <style>
-        /* Minimal CSS as requested */
-        body { font-family: sans-serif; padding: 20px; }
-        .myControlPanel { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; }
-        textarea { width: 95%; max-width: 600px; }
-        button { padding: 10px 15px; margin-right: 10px; cursor: pointer; }
-        #myOutputImage { border: 3px groove blue; margin-top: 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Interactive Timeline with Duration</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>Web-Based Stable Diffusion (ONNX)</h1>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
 
-    <div class="myControlPanel">
-        <h2>Model Loading</h2>
-        <input id="myLoadButton" type="button" value="Load Stable Diffusion Model" onclick="myLoadModel()"> 
-        <p><small>Data warning: This downloads a large model (several GB) to your browser cache.</small></p>
-        <p id="myOutputText">Click 'Load Stable Diffusion Model' to begin.</p>
-        <div id="myStatus"></div>
-    </div>
+  <h1 class="text-2xl font-bold mb-4">Interactive Timeline</h1>
 
-    <div class="myControlPanel">
-        <h2>Text-to-Image Generation</h2>
-        <textarea id="myPromptArea" rows="5" cols="70" 
-            placeholder="Enter your image prompt here. Example: A photo of a futuristic cat riding a surfboard on a neon wave, digital art, highly detailed.">A stunning princess from Kabul in red, white traditional clothing, blue eyes, brown hair</textarea><br>
-        
-        <input id="myAskButton" type="button" value="Generate Image From Text" disabled>
-    </div>
-    
-    <canvas id="myCanvas" style="display: none;"></canvas>
+  <!-- Timeline container -->
+  <div id="timeline" class="w-full max-w-4xl h-96 bg-white rounded-lg shadow-md mb-6"></div>
 
-    <h2 style="margin-top: 30px;">Generated Image</h2>
-    <img src="" id="myOutputImage" width="512" height="512" alt="Generated Image Preview"><br><br>
+  <!-- Form -->
+  <div class="w-full max-w-4xl bg-white rounded-lg shadow-md p-4 mb-6">
+    <h2 class="text-lg font-semibold mb-2" id="form-title">Add Event</h2>
+    <form id="event-form" class="space-y-3">
+      <div>
+        <label for="event-date" class="block text-sm font-medium text-gray-700">Date/Time</label>
+        <input type="datetime-local" id="event-date" required
+               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+      </div>
+      <div>
+        <label for="event-description" class="block text-sm font-medium text-gray-700">Description</label>
+        <input type="text" id="event-description" required
+               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+      </div>
+      <div>
+        <label for="event-duration" class="block text-sm font-medium text-gray-700">Duration (minutes)</label>
+        <input type="number" id="event-duration" min="0" value="0"
+               class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+      </div>
+      <div class="flex space-x-2">
+        <input type="button" value="Save" onclick="handleAddOrUpdateEvent()" 
+               class="px-4 py-2 bg-indigo-600 text-white rounded-lg cursor-pointer">
+        <input type="button" value="Cancel" onclick="resetForm()" 
+               class="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-pointer">
+      </div>
+    </form>
+  </div>
 
+  <!-- Actions -->
+  <div class="w-full max-w-4xl flex justify-between">
+    <input type="button" value="Export Timeline" onclick="exportTimeline()" 
+           class="px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer">
+    <input type="file" id="import-file" accept=".json" class="hidden" onchange="importTimeline(event)">
+    <input type="button" value="Import Timeline" onclick="document.getElementById('import-file').click()" 
+           class="px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer">
+  </div>
+
+  <script>
+    let timeline = null;
+    let timelineData = [];
+    let editingId = null;
+
+    function generateId() {
+      return 'id-' + Math.random().toString(36).substr(2, 9);
+    }
+
+    function handleAddOrUpdateEvent() {
+      const dateValue = document.getElementById('event-date').value;
+      const description = document.getElementById('event-description').value.trim();
+      const durationMinutes = parseInt(document.getElementById('event-duration').value, 10) || 0;
+
+      if (!dateValue || !description) {
+        alert("Please enter both date and description.");
+        return;
+      }
+
+      const date = new Date(dateValue);
+
+      if (editingId) {
+        const index = timelineData.findIndex(d => d.id === editingId);
+        if (index !== -1) {
+          timelineData[index].date = date;
+          timelineData[index].description = description;
+          timelineData[index].duration = durationMinutes;
+        }
+      } else {
+        timelineData.push({
+          id: generateId(),
+          date: date,
+          description: description,
+          duration: durationMinutes
+        });
+      }
+
+      resetForm();
+      drawTimeline();
+    }
+
+    function editEvent(id) {
+      const d = timelineData.find(item => item.id === id);
+      if (!d) return;
+
+      document.getElementById('event-date').value = d.date.toISOString().slice(0, 16);
+      document.getElementById('event-description').value = d.description;
+      document.getElementById('event-duration').value = d.duration || 0;
+
+      editingId = id;
+      document.getElementById('form-title').textContent = "Edit Event";
+    }
+
+    function deleteEvent(id) {
+      timelineData = timelineData.filter(d => d.id !== id);
+      drawTimeline();
+    }
+
+    function resetForm() {
+      document.getElementById('event-form').reset();
+      editingId = null;
+      document.getElementById('form-title').textContent = "Add Event";
+    }
+
+    function drawTimeline() {
+      const container = document.getElementById('timeline');
+
+      const visJsItems = timelineData.map(d => {
+        const start = d.date;
+        const hasDuration = d.duration && d.duration > 0;
+        const end = hasDuration ? new Date(start.getTime() + d.duration * 60000) : null;
+
+        return {
+          id: d.id,
+          content: `<div>
+                      <div>${d.description}${hasDuration ? ` (${d.duration}m)` : ""}</div>
+                      <div class="text-xs text-gray-500">
+                        <a href="#" onclick="editEvent('${d.id}')">Edit</a> | 
+                        <a href="#" onclick="deleteEvent('${d.id}')">Delete</a>
+                      </div>
+                    </div>`,
+          start: start,
+          end: end,
+          type: hasDuration ? 'range' : 'point'
+        };
+      });
+
+      const items = new vis.DataSet(visJsItems);
+      const options = { editable: false };
+
+      if (timeline) {
+        timeline.setItems(items);
+      } else {
+        timeline = new vis.Timeline(container, items, options);
+      }
+    }
+
+    function exportTimeline() {
+      const serializableData = timelineData.map(d => ({
+        id: d.id,
+        date: d.date.toISOString(),
+        description: d.description,
+        duration: d.duration || 0
+      }));
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(serializableData, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "timeline.json");
+      dlAnchor.click();
+    }
+
+    function importTimeline(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          timelineData = data.map(item => ({
+            id: item.id || generateId(),
+            date: new Date(item.date),
+            description: item.description || "Untitled Event",
+            duration: item.duration ? parseInt(item.duration, 10) : 0
+          }));
+          drawTimeline();
+        } catch (err) {
+          alert("Error parsing JSON file.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Init
+    drawTimeline();
+  </script>
 </body>
 </html>
