@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Vis.js Timeline</title>
+  <!-- Google Font -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f7f7f7;
+      margin: 0;
+      padding: 16px;
+    }
+    .timeline-container {
+      width: 100%;
+      height: 350px;
+      background-color: white;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+    }
+    .vis-item {
+      border-radius: 6px;
+      border: 2px solid #4f46e5;
+      background-color: #6366f1;
+      color: white;
+      font-weight: 600;
+      padding: 4px 8px;
+      font-size: 14px;
+    }
+    .vis-item.vis-selected {
+      border-color: #f59e0b !important;
+      background-color: #fbbf24 !important;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+</head>
+<body>
+  <div style="max-width: 960px; margin: 0 auto;">
+    <h1 style="font-size: 24px; font-weight: bold; color: #333; margin-bottom: 16px;">
+      Interactive Timeline Editor (Vis.js)
+    </h1>
+
+    <!-- Input Card -->
+    <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 24px;">
+      <h2 id="form-title" style="font-size: 18px; font-weight: 600; color: #4f46e5; margin-bottom: 12px;">
+        Add New Timeline Event
+      </h2>
+      <form id="timeline-form">
+        <div style="margin-bottom: 12px;">
+          <label for="event-date" style="display:block; font-size: 14px; margin-bottom: 4px;">Date & Time</label>
+          <input type="datetime-local" id="event-date" required
+                 style="width:100%; padding:8px; border:1px solid #ccc; border-radius:8px;">
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label for="event-desc" style="display:block; font-size: 14px; margin-bottom: 4px;">Description</label>
+          <textarea id="event-desc" required maxlength="100" rows="2"
+                    style="width:100%; padding:8px; border:1px solid #ccc; border-radius:8px;"></textarea>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+          <input type="submit" id="submit-btn" value="Add Event"
+                 style="flex:1; min-width:120px; background:#4f46e5; color:white; padding:8px; border:none; border-radius:8px; cursor:pointer;">
+          <input type="button" id="delete-btn" value="Delete Event"
+                 style="flex:1; min-width:120px; background:#e53e3e; color:white; padding:8px; border:none; border-radius:8px; cursor:pointer; display:none;">
+          <input type="button" id="cancel-btn" value="Cancel Edit"
+                 style="flex:1; min-width:120px; background:#e2e8f0; color:#111; padding:8px; border:none; border-radius:8px; cursor:pointer; display:none;">
+        </div>
+      </form>
+    </div>
