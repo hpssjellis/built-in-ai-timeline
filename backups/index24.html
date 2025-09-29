@@ -400,7 +400,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                     description: d.description,
                     end: d.end ? d.end.toISOString() : null, // Save end date if it exists
                     // Save the type for consistency across loads
-                    type: d.type || (d.end ? 'box' : 'point') 
+                    type: d.type || (d.end ? 'box' : 'box') 
                 }));
 
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serializableData));
@@ -441,7 +441,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                         // Load end date and convert it back if it exists
                         end: d.end ? new Date(d.end) : null,
                         // FIX: Ensure type is set based on loaded value or calculated
-                        type: d.type || (d.end ? 'box' : 'point') 
+                        type: d.type || (d.end ? 'box' : 'box') 
                     }));
                     console.log("Timeline data loaded from local storage.");
                 } else {
@@ -460,7 +460,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                             date: new Date(Date.now() + 86400000 * 5),
                             end: null, // This is a point event
                             description: "Future Goal: Complete Vis.js Timeline Features (Point Example)",
-                            type: 'point' // Explicit type for point
+                            type: 'box' // Explicit type for point
                         }
                     ];
                     timelineData = defaultEvents;
@@ -595,7 +595,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                     }
                     
                     // 💡 FIX: Explicitly set the type based on the presence of end date
-                    const myType = myEndDate ? 'box' : 'point';
+                    const myType = myEndDate ? 'box' : 'box';
 
                     return {
                         id: item.id && typeof item.id === 'string' ? item.id : generateId(),
@@ -701,7 +701,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             }
             
             // Determine type for new/updated event
-            const myType = myEndDate ? 'box' : 'point';
+            const myType = myEndDate ? 'box' : 'box';
 
             const myEventData = {
                 date: myStartDate,
@@ -785,7 +785,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                   title: myGetTooltipText(d), 
                   end: d.end, 
                   // Use the 'type' saved in the internal data structure
-                  type: d.type || (myIsRange ? 'box' : 'point'),
+                  type: d.type || (myIsRange ? 'box' : 'box'),
                   
                   // 💡 FIX APPLIED HERE: Force style='dot' for point-type items 
                   // to ensure a visual marker is drawn on the axis line.
