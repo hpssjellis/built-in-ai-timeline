@@ -36,7 +36,7 @@ https://hpssjellis.github.io/built-in-ai-timeline/backups/index00.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index21.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index22.html  new stable, just small issue with data input range needs box, not sure about the point
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index23.html
-1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index24.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index24.html  new stable
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index25.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index26.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index27.html
