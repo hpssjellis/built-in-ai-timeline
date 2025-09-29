@@ -27,8 +27,34 @@ https://hpssjellis.github.io/built-in-ai-timeline/backups/index00.html
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index12.html   OK some issues
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index13.html  bad
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index14.html   bad
-1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index15.html  Good
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index15.html  Good New Stable Sept 28, 2025
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index16.html  bad
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index17.html  bad
 1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index18.html
-1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index19.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index19.html  Getting better
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index20.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index21.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index22.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index23.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index24.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index25.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index26.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index27.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index28.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index29.html
+1. https://hpssjellis.github.io/built-in-ai-timeline/backups/index3.html
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
