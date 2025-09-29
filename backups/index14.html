@@ -97,7 +97,7 @@
             cursor: pointer;
         }
         
-        /* Vis.js: Range Background Item Styling (NEW) */
+        /* Vis.js: Range Background Item Styling */
         .vis-item.vis-background.timeline-range-background {
             background-color: #10b981; /* Green for ranges */
             border: none;
@@ -192,7 +192,7 @@
                               class="input-field" style="margin-top: 4px;">
 Generate a list of 8 to 10 major military campaigns, treaties, and political events related to Napoleon Bonaparte's conquest and reign in Europe, spanning from 1799 to 1815. For each event, provide a precise date, end date and a brief, descriptive title.
 
-Adhere to the following JSON schema: [ { "id": "A unique string ID, like a timestamp", "date": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "end": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "description": "A concise description of the event" } ]   
+Adhere to the following JSON schema: [ { "id": "A unique string ID, like a timestamp", "date": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "end": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "description": "A concise description of the event" } ]    
                     </textarea>
                     <button id="generate-ai-json-btn" onclick="myExecuteChromeAIStreaming()" class="button btn-ai shadow-md w-full" style="margin-top: 0.75rem;">
                         <span id="ai-btn-text">Generate JSON via Chrome AI</span>
@@ -255,9 +255,9 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
 
         // --- Utility Functions ---
 
-        const showModal = (title, message) => {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message;
+        const showModal = (myTitle, myMessage) => {
+            document.getElementById('modal-title').textContent = myTitle;
+            document.getElementById('modal-message').textContent = myMessage;
             document.getElementById('custom-modal').classList.remove('hidden');
             document.getElementById('modal-close').onclick = () => {
                 document.getElementById('custom-modal').classList.add('hidden');
@@ -269,13 +269,13 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         };
 
         /** Converts a Date object to a string format suitable for <input type="datetime-local"> */
-        const toLocalDatetimeString = (date) => {
+        const toLocalDatetimeString = (myDate) => {
             const pad = (n) => n < 10 ? '0' + n : n;
-            const y = date.getFullYear();
-            const m = pad(date.getMonth() + 1);
-            const d = pad(date.getDate());
-            const h = pad(date.getHours());
-            const min = pad(date.getMinutes());
+            const y = myDate.getFullYear();
+            const m = pad(myDate.getMonth() + 1);
+            const d = pad(myDate.getDate());
+            const h = pad(myDate.getHours());
+            const min = pad(myDate.getMinutes());
             return `${y}-${m}-${d}T${h}:${min}`;
         };
 
@@ -292,20 +292,20 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
 
 
         function myStartChromeAITimer() { 
-            let seconds = 0;
+            let mySeconds = 0;
             myChromeAIStatus.textContent = "Working... 0s";
             myChromeAITimerInterval = setInterval(() => {
-                seconds++;
-                myChromeAIStatus.textContent = `Working... ${seconds}s`;
+                mySeconds++;
+                myChromeAIStatus.textContent = `Working... ${mySeconds}s`;
             }, 1000);
         }
 
-        function myStopChromeAITimer(message) { 
+        function myStopChromeAITimer(myMessage) { 
             if (myChromeAITimerInterval) {
                 clearInterval(myChromeAITimerInterval);
                 myChromeAITimerInterval = null;
             }
-            myChromeAIStatus.textContent = message;
+            myChromeAIStatus.textContent = myMessage;
         }
 
         /**
@@ -401,16 +401,19 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                     console.log("Timeline data loaded from local storage.");
                 } else {
                     console.log("No initial data found. Loading default timeline events.");
+                    // Default data centered around today
+                    const myNow = Date.now();
+                    const myDay = 86400000;
                     const defaultEvents = [
                         {
                             id: generateId(),
-                            date: new Date(Date.now() - 86400000 * 5),
-                            end: new Date(Date.now() - 86400000 * 2), // A range of 3 days
+                            date: new Date(myNow - myDay * 5),
+                            end: new Date(myNow - myDay * 2), // A range of 3 days
                             description: "First Project Phase (Range Example)"
                         },
                         {
                             id: generateId(),
-                            date: new Date(Date.now() + 86400000 * 5),
+                            date: new Date(myNow + myDay * 5),
                             description: "Future Goal: Complete Vis.js Timeline Features"
                         }
                     ];
@@ -495,16 +498,17 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         };
         window.myExportXml = myExportXml;
         
-        const parseCsv = (csvText) => {
-            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+        const parseCsv = (myCsvText) => {
+            const lines = myCsvText.split('\n').filter(line => line.trim() !== '');
             if (lines.length < 2) return [];
 
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
             const data = [];
 
             for (let i = 1; i < lines.length; i++) {
+                // Regex to handle quoted strings with commas inside
                 const values = lines[i].match(/(?:\"([^\"]*)\"|([^,]+))/g)
-                                         .map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                                             .map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
 
                 if (values.length === headers.length) {
                     const obj = {};
@@ -524,6 +528,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             try {
                 if (myFormat === 'json') {
                     let myCleanContent = myContent.trim();
+                    // Clean up potential markdown code fences from AI output
                     if (myCleanContent.startsWith('```json')) {
                         myCleanContent = myCleanContent.substring(7);
                     }
@@ -549,7 +554,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                         throw new Error(`Invalid date found: ${item.date}`);
                     }
                     
-                    const myEndDate = item.end ? new Date(item.end) : null;
+                    let myEndDate = item.end ? new Date(item.end) : null;
                     if (myEndDate && isNaN(myEndDate)) {
                         console.warn(`Invalid end date found and ignored: ${item.end}`);
                         myEndDate = null;
@@ -576,8 +581,8 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             return mySuccess;
         };
 
-        const myHandleFileSelect = (event) => { 
-            const myFile = event.target.files[0];
+        const myHandleFileSelect = (myEvent) => { 
+            const myFile = myEvent.target.files[0];
             if (!myFile) return;
 
             const myReader = new FileReader();
@@ -688,6 +693,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             myDeleteButton.classList.remove('hidden');
             myCancelButton.classList.remove('hidden');
         };
+        window.myEditEvent = myEditEvent; // Exported for use by the selection handler
 
         const myDeleteEvent = () => { 
             if (!editingId) return;
@@ -701,38 +707,35 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
 
         // --- Vis.js Visualization Logic ---
 
-// --- Vis.js Visualization Logic ---
-
         const myDrawTimeline = (myData) => { 
             let myVisJsItems = [];
 
-            // 1. Map data to Vis.js format (Keep your existing mapping logic)
-            // This is crucial for separating the visible text from the background bar
+            // 1. Map data to Vis.js format, splitting ranges into background and point items
             myData.forEach(d => {
                 const myIsRange = !!d.end; 
 
                 if (myIsRange) {
-                    // A. Background range item (unselectable color bar)
+                    // A. Create the background range item (the color bar)
                     myVisJsItems.push({
-                        id: d.id + '_range', 
-                        content: '', 
+                        id: d.id + '_range', // Use a unique ID for the background part
+                        content: '', // No text content here
                         start: d.date,
                         end: d.end,
-                        type: 'background', 
-                        className: 'timeline-range-background', 
-                        selectable: false 
+                        type: 'background', // Use 'background' for the color bar
+                        className: 'timeline-range-background', // Custom class for styling the background color
+                        selectable: false // Make the background unselectable
                     });
 
-                    // B. Label item (the selectable text that must be visible)
+                    // B. Create the label item (the text that should always be visible)
                     myVisJsItems.push({
-                        id: d.id, 
+                        id: d.id, // Keep the original ID so we can select/edit the event correctly
                         content: d.description,
-                        start: d.date, // Use the start date for the point item
-                        type: 'point', 
+                        start: d.date,
+                        type: 'point', // Use 'point' so the text is treated as a fixed label
                     });
 
                 } else {
-                    // Standard point item
+                    // Standard point item (for single-date events)
                     myVisJsItems.push({
                         id: d.id,
                         content: d.description,
@@ -745,87 +748,15 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             visItems.clear();
             visItems.add(myVisJsItems);
 
-            const options = {
+            const myOptions = {
                 stack: true,
-                // REMOVE: start: myData.length > 0 ? myData[0].date : new Date(),
-                // REMOVE: end: myData.length > 0 ? myData[myData.length - 1].date : new Date(),
-                // Keep the rest of your general options:
-                height: '350px',
-                zoomable: true,
-                moveable: true,
-                orientation: 'top', 
-                selectable: true,
-                editable: false, 
-                template: function(item, element, data) {
-                    if (item.type !== 'background') { 
-                        return `<div style="padding: 4px; border-radius: 4px; overflow: hidden;">${item.content}</div>`;
-                    }
-                }
-            };
-
-            // 2. Initialize or Update Vis.js Timeline (Existing logic)
-            if (!visTimeline) {
-                visTimeline = new vis.Timeline(myVisContainer, visItems, options); 
-                
-                // Add selection listener
-                visTimeline.on('select', function (properties) {
-                    const selectedIds = properties.items;
-                    if (selectedIds.length > 0) {
-                        const selectedId = selectedIds[0];
-                        
-                        if (selectedId.endsWith('_range')) return;
-
-                        const eventToEdit = myData.find(d => d.id === selectedId);
-                        if (eventToEdit) {
-                            myEditEvent(eventToEdit); 
-                        }
-                    } else {
-                        if (editingId) {
-                            myResetForm(); 
-                        }
-                    }
-                });
-            } else {
-                visTimeline.setItems(visItems);
-                visTimeline.setOptions(options);
-            }
-
-            // 3. ✨ CRITICAL FIX: Set the visible window with padding 
-            if (myData.length > 0) {
-                // Find the absolute earliest start date and latest end date
-                const myMinDate = new Date(Math.min(...myData.map(e => e.date.getTime())));
-                const myMaxDate = new Date(Math.max(...myData.map(e => (e.end || e.date).getTime())));
-                
-                // Define the padding time (e.g., 5 days)
-                const myPaddingMs = 86400000 * 5; // 5 days in milliseconds (1000 * 60 * 60 * 24 * 5)
-
-                // Adjust the range by adding padding to both sides
-                const myRangeStart = new Date(myMinDate.getTime() - myPaddingMs);
-                const myRangeEnd = new Date(myMaxDate.getTime() + myPaddingMs);
-
-                // Apply the padded range
-                visTimeline.setWindow(myRangeStart, myRangeEnd, { animation: true });
-            } else {
-                // If no data, fit to default
-                visTimeline.fit();
-            }
-        };
-
-        window.myDrawTimeline = myDrawTimeline;
-            
-            visItems.clear();
-            visItems.add(myVisJsItems);
-
-            const options = {
-                stack: true,
-                start: myData.length > 0 ? myData[0].date : new Date(),
-                end: myData.length > 0 ? myData[myData.length - 1].date : new Date(),
                 height: '350px',
                 zoomable: true,
                 moveable: true,
                 orientation: 'top', 
                 selectable: true, // Allows selection of the point/label items
                 editable: false, 
+                // Remove the initial 'start' and 'end' options
                 template: function(item, element, data) {
                     // Only apply the template to non-background items
                     if (item.type !== 'background') { 
@@ -836,7 +767,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
 
             // 2. Initialize or Update Vis.js Timeline
             if (!visTimeline) {
-                visTimeline = new vis.Timeline(myVisContainer, visItems, options); 
+                visTimeline = new vis.Timeline(myVisContainer, visItems, myOptions); 
                 
                 // Add selection listener
                 visTimeline.on('select', function (properties) {
@@ -859,10 +790,31 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                 });
             } else {
                 visTimeline.setItems(visItems);
-                visTimeline.setOptions(options);
-                visTimeline.fit(); 
+                visTimeline.setOptions(myOptions);
+            }
+
+            // 3. ✨ FIX: Set the visible window with padding to prevent title clipping
+            if (myData.length > 0) {
+                // Find the absolute earliest start date and latest end date
+                const myMinDate = new Date(Math.min(...myData.map(e => e.date.getTime())));
+                const myMaxDate = new Date(Math.max(...myData.map(e => (e.end || e.date).getTime())));
+                
+                // Define the padding time (e.g., 5 days = 432,000,000 ms)
+                const myPaddingMs = 86400000 * 5; 
+
+                // Adjust the range by adding padding to both sides
+                const myRangeStart = new Date(myMinDate.getTime() - myPaddingMs);
+                const myRangeEnd = new Date(myMaxDate.getTime() + myPaddingMs);
+
+                // Apply the padded range, ensuring titles near the edges are visible
+                visTimeline.setWindow(myRangeStart, myRangeEnd, { animation: true });
+            } else {
+                // If no data, fit to default view (Today)
+                visTimeline.fit();
             }
         };
+
+        window.myDrawTimeline = myDrawTimeline;
 
     </script>
 </body>
