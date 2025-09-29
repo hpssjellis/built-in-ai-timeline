@@ -115,6 +115,9 @@
             color: #1f2937 !important;
             box-shadow: 0 0 0 2px #f59e0b;
         }
+        
+        /* Vis.js specific style for the dot on the axis line */
+        /* This is styled by the default vis-timeline-graph2d.min.css but setting the item.style property is required. */
     </style>
 </head>
 <body onload="myInitializeApp()">
@@ -194,9 +197,9 @@
                     <label for="chrome-ai-prompt-input" style="font-size: 0.875rem; font-weight: 500; color: #374151;">Prompt to Generate Data (The AI will output raw JSON below)</label>
                     <textarea id="chrome-ai-prompt-input" rows="3" 
                                  class="input-field" style="margin-top: 4px;">
-Generate a list of 8 to 10 major science news items, between the dates 1963 and 1980. Each event needs an id, date, description and optional end-date. 
+Generate a list of 8 to 10 major science news items, between the dates 1963 and 1980. Each event needs an id, date, description, and optional end-date. Make an attempt to figure out an end date for multi-day events.
 
-Adhere to the following JSON schema: [ { "id": "A unique string ID, like a timestamp", "date": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "description": "A concise description of the event", "end": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ" } ]                        </textarea>
+Adhere to the following JSON schema: [ { "id": "A unique string ID, like a timestamp", "date": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "description": "A concise description of the event", "end": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ or null" } ]                        </textarea>
                     <button id="generate-ai-json-btn" onclick="myExecuteChromeAIStreaming()" class="button btn-ai shadow-md w-full" style="margin-top: 0.75rem;">
                         <span id="ai-btn-text">Generate JSON via Chrome AI</span>
                         <span id="ai-loading-spinner" class="hidden font-semibold">... Generating (Check console for LanguageModel availability) ...</span>
@@ -295,12 +298,12 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             return `${y}-${m}-${d}T${h}:${min}`;
         };
 
-        /** NEW: Helper function to format dates for the native tooltip (from smaller demo) */
+        /** Helper function to format dates for the native tooltip (from smaller demo) */
         function myFormatDate(myDate) { 
             return myDate ? myDate.toISOString().slice(0, 10) : 'N/A';
         }
 
-        /** NEW: Helper function to generate tooltip text (from smaller demo) */
+        /** Helper function to generate tooltip text (from smaller demo) */
         function myGetTooltipText(myItem) { 
             let myTitleText = `${myItem.description}, ${myFormatDate(myItem.date)}`;
             
@@ -395,7 +398,9 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                     id: d.id,
                     date: d.date.toISOString(),
                     description: d.description,
-                    end: d.end ? d.end.toISOString() : null // Save end date if it exists
+                    end: d.end ? d.end.toISOString() : null, // Save end date if it exists
+                    // Save the type for consistency across loads
+                    type: d.type || (d.end ? 'box' : 'box') 
                 }));
 
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serializableData));
@@ -434,7 +439,9 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                         // Convert ISO string back to Date object
                         date: new Date(d.date),
                         // Load end date and convert it back if it exists
-                        end: d.end ? new Date(d.end) : null 
+                        end: d.end ? new Date(d.end) : null,
+                        // FIX: Ensure type is set based on loaded value or calculated
+                        type: d.type || (d.end ? 'box' : 'box') 
                     }));
                     console.log("Timeline data loaded from local storage.");
                 } else {
@@ -445,13 +452,15 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                             id: generateId(),
                             date: new Date(Date.now() - 86400000 * 5),
                             end: new Date(Date.now() - 86400000 * 2), // A range of 3 days
-                            description: "First Project Phase (Range Example)"
+                            description: "First Project Phase (Range Example)",
+                            type: 'box' // Explicit type for range
                         },
                         {
                             id: generateId(),
                             date: new Date(Date.now() + 86400000 * 5),
                             end: null, // This is a point event
-                            description: "Future Goal: Complete Vis.js Timeline Features (Point Example)"
+                            description: "Future Goal: Complete Vis.js Timeline Features (Point Example)",
+                            type: 'box' // Explicit type for point
                         }
                     ];
                     timelineData = defaultEvents;
@@ -481,7 +490,8 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                 id: d.id,
                 date: d.date.toISOString(),
                 description: d.description,
-                end: d.end ? d.end.toISOString() : null // Include end date in export
+                end: d.end ? d.end.toISOString() : null, // Include end date in export
+                type: d.type // Include type in export
             }));
         };
 
@@ -511,10 +521,10 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             if (myData.length === 0) return showModal("Export Error", "No data to export.");
 
             // Added 'end' header and field
-            const myHeaders = ["id", "date", "end", "description"]; 
+            const myHeaders = ["id", "date", "end", "description", "type"]; 
             const myCsvRows = [
                 myHeaders.join(','),
-                ...myData.map(d => [d.id, `"${d.date}"`, `"${d.end || ''}"`, `"${d.description.replace(/"/g, '""')}"`].join(','))
+                ...myData.map(d => [d.id, `"${d.date}"`, `"${d.end || ''}"`, `"${d.description.replace(/"/g, '""')}"`, d.type].join(','))
             ];
             myDownloadFile(myCsvRows.join('\n'), 'timeline_data.csv', 'text/csv');
         };
@@ -530,6 +540,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                 myXml += `    <date>${d.date}</date>\n`;
                 if (d.end) myXml += `    <end>${d.end}</end>\n`; // Include end date
                 myXml += `    <description>${d.description}</description>\n`;
+                myXml += `    <type>${d.type}</type>\n`;
                 myXml += `  </event>\n`;
             });
             myXml += '</timeline>';
@@ -582,12 +593,16 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                         console.warn(`Invalid end date found and ignored: ${item.end}`);
                         myEndDate = null;
                     }
+                    
+                    // 💡 FIX: Explicitly set the type based on the presence of end date
+                    const myType = myEndDate ? 'box' : 'box';
 
                     return {
                         id: item.id && typeof item.id === 'string' ? item.id : generateId(),
                         date: myStartDate,
-                        end: myEndDate, // Store end date
-                        description: item.description || "Untitled Event"
+                        end: myEndDate, 
+                        description: item.description || "Untitled Event",
+                        type: myType // Include type
                     };
                 });
                 
@@ -684,11 +699,15 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                 showModal("Invalid Input", "The end date/time is invalid.");
                 return;
             }
+            
+            // Determine type for new/updated event
+            const myType = myEndDate ? 'box' : 'box';
 
             const myEventData = {
                 date: myStartDate,
                 description: myDescription,
-                end: myEndDate 
+                end: myEndDate,
+                type: myType // Include type
             };
 
             if (editingId) {
@@ -698,6 +717,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                     timelineData[index].date = myEventData.date;
                     timelineData[index].description = myEventData.description;
                     timelineData[index].end = myEventData.end; 
+                    timelineData[index].type = myEventData.type; // Update type
                 }
             } else {
                 // Add new event
@@ -759,13 +779,17 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
 
               return {
                   id: d.id,
-                  content: d.description,
+                  content: d.description, // Correctly mapped from description
                   start: d.date,
                   // Use the new helper function for title/tooltip
                   title: myGetTooltipText(d), 
                   end: d.end, 
-                  // 3. Set type to 'box' for range items, 'point' otherwise
-                  type: myIsRange ? 'box' : 'point', 
+                  // Use the 'type' saved in the internal data structure
+                  type: d.type || (myIsRange ? 'box' : 'box'),
+                  
+                  // 💡 FIX APPLIED HERE: Force style='dot' for point-type items 
+                  // to ensure a visual marker is drawn on the axis line.
+                  style: d.type === 'point' ? 'dot' : undefined, 
               };
           });
             
@@ -774,9 +798,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
 
             const options = {
                 stack: true,
-                // 💡 REMOVED restrictive zoomMin/zoomMax settings
-                // zoomMin: 1000 * 60 * 60 * 24, // 1 day
-                // zoomMax: 1000 * 60 * 60 * 24 * 365, // ~1 year
+                // Removed restrictive zoomMin/zoomMax settings
                 start: myData.length > 0 ? myData[0].date : new Date(),
                 end: myData.length > 0 ? myData[myData.length - 1].date : new Date(),
                 height: '350px',
