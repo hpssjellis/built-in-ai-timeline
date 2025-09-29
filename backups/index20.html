@@ -193,10 +193,9 @@
                     <label for="chrome-ai-prompt-input" style="font-size: 0.875rem; font-weight: 500; color: #374151;">Prompt to Generate Data (The AI will output raw JSON below)</label>
                     <textarea id="chrome-ai-prompt-input" rows="3" 
                                 class="input-field" style="margin-top: 4px;">
-Generate a list of 8 to 10 major military campaigns, treaties, and political events related to Napoleon Bonaparte's conquest and reign in Europe, spanning from 1799 to 1815. For each event, provide a precise date and a brief, descriptive title.
+Generate a list of 8 to 10 major science news items, between the dates 1963 and 1980. Each event needs an id, date, description and optional end-date. 
 
-Adhere to the following JSON schema: [ { "id": "A unique string ID, like a timestamp", "date": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "description": "A concise description of the event" } ]    
-                    </textarea>
+Adhere to the following JSON schema: [ { "id": "A unique string ID, like a timestamp", "date": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "description": "A concise description of the event", "end": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ" } ]                       </textarea>
                     <button id="generate-ai-json-btn" onclick="myExecuteChromeAIStreaming()" class="button btn-ai shadow-md w-full" style="margin-top: 0.75rem;">
                         <span id="ai-btn-text">Generate JSON via Chrome AI</span>
                         <span id="ai-loading-spinner" class="hidden font-semibold">... Generating (Check console for LanguageModel availability) ...</span>
