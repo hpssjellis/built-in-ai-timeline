@@ -27,3 +27,21 @@ Adhere to the following JSON schema:
   }
 ]
 
+
+
+
+.
+
+
+.
+
+.
+
+.
+
+
+better prompt for range
+
+Generate a list of 8 to 10 significant events related to wwII.  For some events, provide both a start and an end date to represent a range.
+
+Adhere strictly to the following JSON schema array: [ { "id": "A unique string ID, like a timestamp", "date": "The event start date as an ISO 8601 string (YYYY-MM-DDTHH:MM:SS.sssZ)", "end": "The event end date as an ISO 8601 string (YYYY-MM-DDTHH:MM:SS.sssZ). This property is optional. Use it for range events like wars or projects.", "description": "A concise, descriptive title for the event or range." } ]
