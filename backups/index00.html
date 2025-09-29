@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Vis.js Timeline</title>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css">
+    <script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
 
     <style>
-        /* General Layout Reset */
+        /* General Layout Reset (Minimal inline CSS to match your demo preference) */
         body {
-            font-family: Arial, sans-serif;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
             background-color: #f7f7f7;
-            padding: 16px; /* p-4 */
+            padding: 16px; 
             margin: 0;
-            line-height: 1.5;
+            line-height: 1.35; 
         }
 
         /* Utility Classes (Minimal replacements for Tailwind) */
@@ -24,7 +24,6 @@
         .mb-8 { margin-bottom: 2rem; }
         .p-6 { padding: 1.5rem; }
         .rounded-xl { border-radius: 0.75rem; }
-        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
         .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); }
         .flex { display: flex; }
         .flex-wrap { flex-wrap: wrap; }
@@ -45,7 +44,7 @@
         }
 
         .input-field {
-            border: 1px solid #d1d5db; /* border-gray-300 */
+            border: 1px solid #d1d5db; 
             padding: 8px;
             border-radius: 8px;
             width: 100%;
@@ -62,48 +61,59 @@
         }
 
         /* Color Scheme */
-        .btn-primary { background-color: #4f46e5; color: white; } /* indigo-600 */
-        .btn-primary:hover { background-color: #4338ca; } /* indigo-700 */
-        .btn-delete { background-color: #ef4444; color: white; } /* red-500 */
-        .btn-delete:hover { background-color: #dc2626; } /* red-600 */
-        .btn-cancel { background-color: #d1d5db; color: #1f2937; } /* gray-300, gray-800 */
-        .btn-cancel:hover { background-color: #9ca3af; } /* gray-400 */
-        .btn-save { background-color: #22c55e; color: white; } /* green-500 */
-        .btn-view { background-color: #f59e0b; color: white; } /* yellow-500 */
-        .btn-export { background-color: #3b82f6; color: white; } /* blue-500 */
-        .btn-ai { background-color: #9333ea; color: white; } /* purple-600 */
+        .btn-primary { background-color: #4f46e5; color: white; } 
+        .btn-primary:hover { background-color: #4338ca; } 
+        .btn-delete { background-color: #ef4444; color: white; } 
+        .btn-delete:hover { background-color: #dc2626; } 
+        .btn-cancel { background-color: #d1d5db; color: #1f2937; } 
+        .btn-cancel:hover { background-color: #9ca3af; } 
+        .btn-save { background-color: #22c55e; color: white; } 
+        .btn-view { background-color: #f59e0b; color: white; } 
+        .btn-export { background-color: #3b82f6; color: white; } 
+        .btn-ai { background-color: #9333ea; color: white; } 
+        .btn-append { background-color: #0d9488; color: white; } 
+        .btn-append:hover { background-color: #0f766e; } 
 
-        /* Vis.js Styling */
+        /* Timeline Container Styling (Merged) */
         .timeline-container {
             width: 100%;
-            height: 350px;
+            height: 350px; /* Kept height from your large file */
             background-color: white;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            border-radius: 10px; 
+            border: 1px solid #ccc; /* Border from your smaller demo */
+            box-shadow: none; 
         }
-        .vis-item {
-            border-radius: 0.5rem;
-            border-color: #4f46e5;
-            background-color: #6366f1; /* Primary color */
-            color: white;
-            font-weight: 600;
+        
+        /* Item Style for Box (Range) - GREEN from smaller demo */
+        .vis-item.vis-box {
+            background-color: #10b981 !important; 
+            border-color: #059669 !important;
+            color: white !important;
+            border-width: 1px !important;
+            border-radius: 4px !important;
+            font-weight: 500;
             padding: 4px 8px;
             font-size: 0.875rem;
-            cursor: pointer;
         }
-        /* Style for Range Items */
-        .vis-item.vis-range {
-            background-color: #10b981; /* Green for ranges */
-            border-color: #059669;
+
+        /* Item Style for Point (Box/Dot) - BLUE from smaller demo */
+        .vis-item.vis-dot,
+        .vis-item.vis-point {
+            background-color: #4f46e5 !important; 
+            border-color: #4338ca !important;
+            color: white !important;
+            border-width: 1px !important;
+            border-radius: 4px !important;
+            font-weight: 500;
+            padding: 4px 8px;
+            font-size: 0.875rem;
         }
+
         .vis-item.vis-selected {
             border-color: #f59e0b !important;
             background-color: #fbbf24 !important;
+            color: #1f2937 !important;
             box-shadow: 0 0 0 2px #f59e0b;
-        }
-        .vis-time-axis .vis-text {
-            color: #6b7280;
-            font-size: 0.8rem;
         }
     </style>
 </head>
@@ -169,6 +179,9 @@
                 <button id="import-file-btn" onclick="myImportFileInput.click()" class="button btn-export shadow-md" style="margin: 0.5rem;">
                     Import File (.json/.csv)
                 </button>
+                   <button id="clear-local-storage-btn" onclick="myClearLocalStorage()" class="button btn-delete shadow-md" style="margin: 0.5rem;">
+                    Clear All Local Data 🗑️
+                </button>
             </div>
 
             <input type="file" id="myImportFileInput" accept=".json,.csv" class="hidden">
@@ -180,11 +193,10 @@
                 <div style="margin-bottom: 1rem; margin-top: 0.75rem;">
                     <label for="chrome-ai-prompt-input" style="font-size: 0.875rem; font-weight: 500; color: #374151;">Prompt to Generate Data (The AI will output raw JSON below)</label>
                     <textarea id="chrome-ai-prompt-input" rows="3" 
-                              class="input-field" style="margin-top: 4px;">
-Generate a list of 8 to 10 major military campaigns, treaties, and political events related to Napoleon Bonaparte's conquest and reign in Europe, spanning from 1799 to 1815. For each event, provide a precise date and a brief, descriptive title.
+                                 class="input-field" style="margin-top: 4px;">
+Generate a list of 8 to 10 major science news items, between the dates 1963 and 1980. Each event needs an id, date, description and optional end-date. 
 
-Adhere to the following JSON schema: [ { "id": "A unique string ID, like a timestamp", "date": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "description": "A concise description of the event" } ]   
-                    </textarea>
+Adhere to the following JSON schema: [ { "id": "A unique string ID, like a timestamp", "date": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ", "description": "A concise description of the event", "end": "An ISO 8601 string, e.g., YYYY-MM-DDTHH:MM:SS.sssZ" } ]                        </textarea>
                     <button id="generate-ai-json-btn" onclick="myExecuteChromeAIStreaming()" class="button btn-ai shadow-md w-full" style="margin-top: 0.75rem;">
                         <span id="ai-btn-text">Generate JSON via Chrome AI</span>
                         <span id="ai-loading-spinner" class="hidden font-semibold">... Generating (Check console for LanguageModel availability) ...</span>
@@ -198,9 +210,14 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                 
                 <textarea id="data-json" style="width: 100%; height: 256px; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-family: monospace; font-size: 0.875rem;" placeholder="[ { &quot;date&quot;: &quot;2024-01-01T10:00:00.000Z&quot;, &quot;description&quot;: &quot;Event One&quot; } ]"></textarea>
                 
-                <button id="load-from-text-btn" onclick="myLoadFromText()" class="button btn-primary shadow-md" style="margin-top: 8px;">
-                    Load JSON into Timeline
-                </button>
+                <div class="flex flex-wrap" style="margin-top: 8px; margin-left: -0.5rem; margin-right: -0.5rem;">
+                    <button id="load-from-text-btn" onclick="myLoadFromText()" class="button btn-primary shadow-md flex-1" style="margin: 0.5rem;">
+                        Load JSON into Timeline (Replace All)
+                    </button>
+                    <button id="append-from-text-btn" onclick="myAppendDataFromText()" class="button btn-append shadow-md flex-1" style="margin: 0.5rem;">
+                        Add JSON to Timeline (Append)
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -231,19 +248,26 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         let visItems = new vis.DataSet([]); // Vis.js Data Set
 
         // --- DOM Element References (Using my* naming) ---
-        const myVisContainer = document.getElementById('myVisTimelineContainer'); // Updated ID
-        const myTimelineForm = document.getElementById('myTimelineForm'); // Updated ID
-        const myEventStartDateInput = document.getElementById('myEventStartDate'); // Updated ID
-        const myEventEndDateInput = document.getElementById('myEventEndDate'); // NEW
+        const myVisContainer = document.getElementById('myVisTimelineContainer'); 
+        const myTimelineForm = document.getElementById('myTimelineForm'); 
+        const myEventStartDateInput = document.getElementById('myEventStartDate'); 
+        const myEventEndDateInput = document.getElementById('myEventEndDate'); 
         const myEventDescInput = document.getElementById('event-desc');
         const myFormTitle = document.getElementById('form-title');
         const mySubmitButton = document.getElementById('submit-btn');
         const myDeleteButton = document.getElementById('delete-btn');
         const myCancelButton = document.getElementById('cancel-btn');
-        const myRawDataArea = document.getElementById('rawDataArea'); // Updated ID
+        const myRawDataArea = document.getElementById('rawDataArea'); 
         const myShowDataButton = document.getElementById('show-data-btn');
-        const myLoadFromTextButton = document.getElementById('load-from-text-btn');
-        const myImportFileInput = document.getElementById('myImportFileInput'); // Updated ID
+        const myImportFileInput = document.getElementById('myImportFileInput'); 
+
+        const myChromeAIPromptInput = document.getElementById('chrome-ai-prompt-input'); 
+        const myChromeAIStatus = document.getElementById('ai-status'); 
+        const myGenerateButton = document.getElementById('generate-ai-json-btn'); 
+        const myBtnText = document.getElementById('ai-btn-text'); 
+        const mySpinner = document.getElementById('ai-loading-spinner'); 
+        const myDataJsonTextarea = document.getElementById('data-json'); 
+
 
         // --- Utility Functions ---
 
@@ -271,19 +295,28 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             return `${y}-${m}-${d}T${h}:${min}`;
         };
 
+        /** NEW: Helper function to format dates for the native tooltip (from smaller demo) */
+        function myFormatDate(myDate) { 
+            return myDate ? myDate.toISOString().slice(0, 10) : 'N/A';
+        }
+
+        /** NEW: Helper function to generate tooltip text (from smaller demo) */
+        function myGetTooltipText(myItem) { 
+            let myTitleText = `${myItem.description}, ${myFormatDate(myItem.date)}`;
+            
+            if (myItem.end) {
+                myTitleText += ` to ${myFormatDate(myItem.end)}`;
+            } else {
+                myTitleText += ``;
+            }
+            return myTitleText;
+        }
+
         // --- Chrome AI Logic (LanguageModel API) ---
-        let myChromeAILanguageModelSession = null; // Renamed
-        let myChromeAITimerInterval = null; // Renamed
+        let myChromeAILanguageModelSession = null; 
+        let myChromeAITimerInterval = null; 
 
-        const myChromeAIPromptInput = document.getElementById('chrome-ai-prompt-input'); // Renamed
-        const myChromeAIStatus = document.getElementById('ai-status'); // Renamed
-        const myGenerateButton = document.getElementById('generate-ai-json-btn'); // Renamed
-        const myBtnText = document.getElementById('ai-btn-text'); // Renamed
-        const mySpinner = document.getElementById('ai-loading-spinner'); // Renamed
-        const myDataJsonTextarea = document.getElementById('data-json'); // Renamed
-
-
-        function myStartChromeAITimer() { // Renamed
+        function myStartChromeAITimer() { 
             let seconds = 0;
             myChromeAIStatus.textContent = "Working... 0s";
             myChromeAITimerInterval = setInterval(() => {
@@ -292,7 +325,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             }, 1000);
         }
 
-        function myStopChromeAITimer(message) { // Renamed
+        function myStopChromeAITimer(message) { 
             if (myChromeAITimerInterval) {
                 clearInterval(myChromeAITimerInterval);
                 myChromeAITimerInterval = null;
@@ -303,7 +336,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         /**
          * Main function to create the session and execute the streaming prompt using Chrome's LanguageModel API.
          */
-        async function myExecuteChromeAIStreaming() { // Renamed, async/await preferred
+        async function myExecuteChromeAIStreaming() { 
             myGenerateButton.disabled = true;
             myGenerateButton.classList.add('opacity-50');
             myBtnText.classList.add('hidden');
@@ -374,13 +407,23 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         };
 
         /** Public function for manual saving (shows notification). */
-        const mySaveDataToLocalStorage = () => { // Renamed
+        const mySaveDataToLocalStorage = () => { 
             _saveDataCore();
             showModal("Success", "Timeline data successfully saved to local storage!");
         };
         window.mySaveDataToLocalStorage = mySaveDataToLocalStorage;
+        
+        /** Clears all timeline data from local storage. */
+        const myClearLocalStorage = () => { 
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            timelineData = [];
+            myDrawTimeline(timelineData);
+            myResetForm();
+            showModal("Data Cleared", "All timeline data has been permanently removed from local storage.");
+        };
+        window.myClearLocalStorage = myClearLocalStorage;
 
-        const myLoadDataFromLocalStorage = () => { // Renamed
+        const myLoadDataFromLocalStorage = () => { 
             try {
                 const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
                 
@@ -401,13 +444,14 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                         {
                             id: generateId(),
                             date: new Date(Date.now() - 86400000 * 5),
-                            end: new Date(Date.now() - 86400000 * 2), // NEW: A range of 3 days
+                            end: new Date(Date.now() - 86400000 * 2), // A range of 3 days
                             description: "First Project Phase (Range Example)"
                         },
                         {
                             id: generateId(),
                             date: new Date(Date.now() + 86400000 * 5),
-                            description: "Future Goal: Complete Vis.js Timeline Features"
+                            end: null, // This is a point event
+                            description: "Future Goal: Complete Vis.js Timeline Features (Point Example)"
                         }
                     ];
                     timelineData = defaultEvents;
@@ -415,23 +459,23 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                 }
 
                 timelineData.sort((a, b) => a.date - b.date); // Ensure data is sorted
-                myDrawTimeline(timelineData); // Renamed call
+                myDrawTimeline(timelineData); 
             } catch (error) {
                 console.error("Error loading from local storage: ", error);
                 showModal("Error", "Failed to load data from local storage. Starting with empty timeline.");
                 timelineData = [];
-                myDrawTimeline([]); // Renamed call
+                myDrawTimeline([]); 
             }
         };
-
-        const myInitializeApp = () => { // Renamed
-            myLoadDataFromLocalStorage(); // Renamed call
+        
+        const myInitializeApp = () => { 
+            myLoadDataFromLocalStorage(); 
         };
         window.myInitializeApp = myInitializeApp;
 
         // --- Data Serialization and Import/Export ---
 
-        const myFormatDataForExport = () => { // Renamed
+        const myFormatDataForExport = () => { 
             // Converts Date objects to ISO strings for consistent export
             return timelineData.map(d => ({
                 id: d.id,
@@ -441,7 +485,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             }));
         };
 
-        const myDownloadFile = (myData, myFilename, myType) => { // Renamed
+        const myDownloadFile = (myData, myFilename, myType) => { 
             const myBlob = new Blob([myData], { type: myType });
             const myUrl = URL.createObjectURL(myBlob);
             const myA = document.createElement('a');
@@ -454,7 +498,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             showModal("Export Complete", `Data saved as ${myFilename}.`);
         };
 
-        const myExportJson = () => { // Renamed
+        const myExportJson = () => { 
             const myData = myFormatDataForExport();
             if (myData.length === 0) return showModal("Export Error", "No data to export.");
 
@@ -462,7 +506,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         };
         window.myExportJson = myExportJson;
 
-        const myExportCsv = () => { // Renamed
+        const myExportCsv = () => { 
             const myData = myFormatDataForExport();
             if (myData.length === 0) return showModal("Export Error", "No data to export.");
 
@@ -476,7 +520,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         };
         window.myExportCsv = myExportCsv;
 
-        const myExportXml = () => { // Renamed
+        const myExportXml = () => { 
             const myData = myFormatDataForExport();
             if (myData.length === 0) return showModal("Export Error", "No data to export.");
 
@@ -493,9 +537,13 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         };
         window.myExportXml = myExportXml;
         
-        // ... (parseCsv function remains the same) ...
-
-        const myLoadDataFromFileContent = (myContent, myFormat) => { // Renamed
+        /**
+         * Core function to load data from content, with an option to append instead of replace.
+         * @param {string} myContent - The raw data string (JSON or CSV).
+         * @param {string} myFormat - The format ('json' or 'csv').
+         * @param {boolean} [myAppendMode=false] - If true, appends to existing data.
+         */
+        const myLoadDataFromFileContent = (myContent, myFormat, myAppendMode = false) => { 
             let myParsedData = [];
             let mySuccess = true;
 
@@ -528,8 +576,8 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                         throw new Error(`Invalid date found: ${item.date}`);
                     }
                     
-                    // NEW: Parse end date if present
-                    const myEndDate = item.end ? new Date(item.end) : null;
+                    // Parse end date if present
+                    let myEndDate = item.end ? new Date(item.end) : null;
                     if (myEndDate && isNaN(myEndDate)) {
                         console.warn(`Invalid end date found and ignored: ${item.end}`);
                         myEndDate = null;
@@ -542,11 +590,20 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                         description: item.description || "Untitled Event"
                     };
                 });
+                
+                if (myAppendMode) {
+                    // Append the new data to the existing timelineData
+                    timelineData.push(...newTimelineData);
+                    showModal("Append Success", `Successfully added ${newTimelineData.length} new events from the ${myFormat.toUpperCase()} data.`);
+                } else {
+                    // Replace existing data (Load/Replace mode)
+                    timelineData = newTimelineData;
+                    showModal("Load Success", `Successfully loaded and replaced with ${timelineData.length} events from the ${myFormat.toUpperCase()} data.`);
+                }
 
-                timelineData = newTimelineData;
+                timelineData.sort((a, b) => a.date - b.date);
                 _saveDataCore(); // Immediately save imported data silently
-                myDrawTimeline(timelineData); // Renamed call
-                showModal("Load Success", `Successfully loaded ${timelineData.length} events from the ${myFormat.toUpperCase()} data.`);
+                myDrawTimeline(timelineData); 
 
             } catch (error) {
                 console.error("Data Load Error:", error);
@@ -556,7 +613,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             return mySuccess;
         };
 
-        const myHandleFileSelect = (event) => { // Renamed
+        const myHandleFileSelect = (event) => { 
             const myFile = event.target.files[0];
             if (!myFile) return;
 
@@ -564,15 +621,16 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             myReader.onload = (e) => {
                 const myContent = e.target.result;
                 const myFileExtension = myFile.name.split('.').pop().toLowerCase();
-                myLoadDataFromFileContent(myContent, myFileExtension);
+                // When importing a file, we assume it should replace the data
+                myLoadDataFromFileContent(myContent, myFileExtension, false); 
             };
             myReader.readAsText(myFile);
         };
-        myImportFileInput.addEventListener('change', myHandleFileSelect); // Kept addEventListener for file input simplicity
+        myImportFileInput.addEventListener('change', myHandleFileSelect); 
 
         // --- Raw Data View/Load ---
 
-        const myToggleRawDataArea = () => { // Renamed
+        const myToggleRawDataArea = () => { 
             const isHidden = myRawDataArea.classList.contains('hidden');
             if (isHidden) {
                 myDisplayRawData();
@@ -585,20 +643,28 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         };
         window.myToggleRawDataArea = myToggleRawDataArea;
 
-        const myDisplayRawData = () => { // Renamed
+        const myDisplayRawData = () => { 
             const myDataForDisplay = myFormatDataForExport();
             myDataJsonTextarea.value = JSON.stringify(myDataForDisplay, null, 2);
         };
 
-        const myLoadFromText = () => { // Renamed
+        const myLoadFromText = () => { 
             const myJsonStr = myDataJsonTextarea.value;
-            myLoadDataFromFileContent(myJsonStr, 'json');
+            // Load/Replace mode
+            myLoadDataFromFileContent(myJsonStr, 'json', false); 
         };
         window.myLoadFromText = myLoadFromText;
+        
+        const myAppendDataFromText = () => { 
+            const myJsonStr = myDataJsonTextarea.value;
+            // Append mode
+            myLoadDataFromFileContent(myJsonStr, 'json', true); 
+        };
+        window.myAppendDataFromText = myAppendDataFromText;
 
         // --- Core Event Handlers ---
 
-        const myHandleAddOrUpdateEvent = (e) => { // Renamed
+        const myHandleAddOrUpdateEvent = (e) => { 
             e.preventDefault();
 
             const myStartDateStr = myEventStartDateInput.value;
@@ -606,7 +672,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             const myDescription = myEventDescInput.value.trim();
 
             const myStartDate = new Date(myStartDateStr);
-            const myEndDate = myEndDateStr ? new Date(myEndDateStr) : null; // Get end date
+            const myEndDate = myEndDateStr ? new Date(myEndDateStr) : null; 
 
             if (isNaN(myStartDate) || !myDescription) {
                 showModal("Invalid Input", "Please select a valid start date/time and provide a description.");
@@ -622,7 +688,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             const myEventData = {
                 date: myStartDate,
                 description: myDescription,
-                end: myEndDate // Store the end date
+                end: myEndDate 
             };
 
             if (editingId) {
@@ -631,7 +697,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                 if (index !== -1) {
                     timelineData[index].date = myEventData.date;
                     timelineData[index].description = myEventData.description;
-                    timelineData[index].end = myEventData.end; // Update end date
+                    timelineData[index].end = myEventData.end; 
                 }
             } else {
                 // Add new event
@@ -646,7 +712,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         };
         window.myHandleAddOrUpdateEvent = myHandleAddOrUpdateEvent;
 
-        const myResetForm = () => { // Renamed
+        const myResetForm = () => { 
             myTimelineForm.reset();
             myFormTitle.textContent = 'Add New Timeline Event';
             mySubmitButton.textContent = 'Add Event';
@@ -660,10 +726,10 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
         window.myResetForm = myResetForm;
 
         /** Populates the form when a Vis.js item is selected */
-        const myEditEvent = (d) => { // Renamed
+        const myEditEvent = (d) => { 
             editingId = d.id;
             myEventStartDateInput.value = toLocalDatetimeString(d.date);
-            // NEW: Populate the End Date input if the data has one
+            // Populate the End Date input if the data has one
             myEventEndDateInput.value = d.end ? toLocalDatetimeString(d.end) : ''; 
             myEventDescInput.value = d.description;
 
@@ -673,7 +739,7 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             myCancelButton.classList.remove('hidden');
         };
 
-        const myDeleteEvent = () => { // Renamed
+        const myDeleteEvent = () => { 
             if (!editingId) return;
             timelineData = timelineData.filter(d => d.id !== editingId);
             myDrawTimeline(timelineData);
@@ -685,31 +751,32 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
 
         // --- Vis.js Visualization Logic ---
 
-        const myDrawTimeline = (myData) => { // Renamed
-
+        const myDrawTimeline = (myData) => { 
 
           // 1. Map data to Vis.js format
-    const myVisJsItems = myData.map(d => {
-        const myIsRange = !!d.end; 
+          const myVisJsItems = myData.map(d => {
+              const myIsRange = !!d.end; 
 
-        return {
-            id: d.id,
-            content: d.description,
-            start: d.date,
-            // 💡 ADDED: Title attribute for mouseover tooltip
-            title: d.description, 
-            // The 'end' property for range events
-            end: d.end, 
-            // Set type to 'range' if end date exists, otherwise 'point'
-            type: myIsRange ? 'range' : 'point', 
-        };
-    });
+              return {
+                  id: d.id,
+                  content: d.description,
+                  start: d.date,
+                  // Use the new helper function for title/tooltip
+                  title: myGetTooltipText(d), 
+                  end: d.end, 
+                  // 3. Set type to 'box' for range items, 'point' otherwise
+                  type: myIsRange ? 'box' : 'point', 
+              };
+          });
             
             visItems.clear();
             visItems.add(myVisJsItems);
 
             const options = {
                 stack: true,
+                // 💡 REMOVED restrictive zoomMin/zoomMax settings
+                // zoomMin: 1000 * 60 * 60 * 24, // 1 day
+                // zoomMax: 1000 * 60 * 60 * 24 * 365, // ~1 year
                 start: myData.length > 0 ? myData[0].date : new Date(),
                 end: myData.length > 0 ? myData[myData.length - 1].date : new Date(),
                 height: '350px',
@@ -718,14 +785,11 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                 orientation: 'top', 
                 selectable: true,
                 editable: false, 
-                template: function(item, element, data) {
-                    return `<div style="padding: 4px; border-radius: 4px; overflow: hidden;">${item.content}</div>`;
-                }
             };
 
             // 2. Initialize or Update Vis.js Timeline
             if (!visTimeline) {
-                visTimeline = new vis.Timeline(myVisContainer, visItems, options); // Use new var
+                visTimeline = new vis.Timeline(myVisContainer, visItems, options); 
                 
                 // Add selection listener
                 visTimeline.on('select', function (properties) {
@@ -734,11 +798,11 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
                         const selectedId = selectedIds[0];
                         const eventToEdit = timelineData.find(d => d.id === selectedId);
                         if (eventToEdit) {
-                            myEditEvent(eventToEdit); // Use renamed function
+                            myEditEvent(eventToEdit); 
                         }
                     } else {
                         if (editingId) {
-                            myResetForm(); // Use renamed function
+                            myResetForm(); 
                         }
                     }
                 });
@@ -749,13 +813,6 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             }
         };
 
-
-
-
-
-
-      
-        
         // The remaining helper functions for CSV parsing remain the same
         const parseCsv = (csvText) => {
             const lines = csvText.split('\n').filter(line => line.trim() !== '');
@@ -765,8 +822,9 @@ Adhere to the following JSON schema: [ { "id": "A unique string ID, like a times
             const data = [];
 
             for (let i = 1; i < lines.length; i++) {
+                // A regex that attempts to handle quoted strings with embedded commas and escaped quotes
                 const values = lines[i].match(/(?:\"([^\"]*)\"|([^,]+))/g)
-                                         .map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                                     .map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
 
                 if (values.length === headers.length) {
                     const obj = {};
