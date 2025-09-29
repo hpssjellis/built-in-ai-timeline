@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <title>vis.js: Timeline — Tooltip and Range Points Demo</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <title>vis.js: Timeline — Tooltip and Range Points Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css">
-    <script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
+    <script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
 
     <style>
         body {
@@ -14,7 +14,7 @@
             margin: 16px;
         }
 
-        /* Styling the timeline container to match your demo */
+        /* Styling the timeline container to match the demo's appearance */
         #myTimeline {
             width: 100%;
             height: 240px;
@@ -22,18 +22,18 @@
             border-radius: 10px; /* Rounded border for the container */
         }
 
-        /* Styling range items (type='box') to be green with white text */
+        /* 💡 Style for range items (type='box') */
         .vis-item.vis-box {
-            background-color: #10b981 !important; /* Green */
+            background-color: #10b981 !important; /* Green background */
             border-color: #059669 !important;
             color: white !important;
             border-radius: 4px !important;
         }
 
-        /* Styling point items (default/type='point') to be blue with white text */
+        /* 💡 Style for point items (default/type='point') */
         .vis-item.vis-dot,
         .vis-item.vis-point {
-            background-color: #4f46e5 !important; /* Blue/Indigo */
+            background-color: #4f46e5 !important; /* Blue/Indigo background */
             border-color: #4338ca !important;
             color: white !important;
             border-radius: 4px !important;
@@ -50,123 +50,120 @@
 </head>
 <body style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; line-height:1.35; margin:16px;">
 
-    <h1 style="margin:0 0 8px 0;">vis.js Timeline Demo with Range Points</h1>
-    <p style="margin:0 0 16px 0;">
-        **Range items now have start/end points** and the native tooltip returns on mouseover.
-    </p>
+  <h1 style="margin:0 0 8px 0;">vis.js Timeline Demo with Range Points</h1>
+  <p style="margin:0 0 16px 0;">
+    **Range items now have start/end points** and the native tooltip returns on mouseover.
+  </p>
 
-    <h2 style="margin:24px 0 8px 0;">Timeline</h2>
-    <div id="myTimeline"></div>
-    <div style="margin:8px 0;">
-        <input type="button" value="Add Today Item" onclick="myAddTodayItem()">
-        <input type="button" value="Focus Latest" onclick="myFocusLatestTimelineItem()" style="margin-left:4px;">
-        <input type="button" value="Zoom In" onclick="myTimelineZoomIn()" style="margin-left:4px;">
-        <input type="button" value="Zoom Out" onclick="myTimelineZoomOut()" style="margin-left:4px;">
-    </div>
+    <h2 style="margin:24px 0 8px 0;">Timeline</h2>
+  <div id="myTimeline"></div>
+  <div style="margin:8px 0;">
+    <input type="button" value="Add Today Item" onclick="myAddTodayItem()" style="padding:6px 10px; border-radius:10px; border:1px solid #888; cursor:pointer;">
+    <input type="button" value="Focus Latest" onclick="myFocusLatestTimelineItem()" style="padding:6px 10px; border-radius:10px; border:1px solid #888; cursor:pointer; margin-left:4px;">
+    <input type="button" value="Zoom In" onclick="myTimelineZoomIn()" style="padding:6px 10px; border-radius:10px; border:1px solid #888; cursor:pointer; margin-left:4px;">
+    <input type="button" value="Zoom Out" onclick="myTimelineZoomOut()" style="padding:6px 10px; border-radius:10px; border:1px solid #888; cursor:pointer; margin-left:4px;">
+  </div>
 
-    <script>
-        // ========== TIMELINE ==========
-        let myTimelineInstance, myTimelineItems;
+  <script>
+    // ========== TIMELINE ==========
+    let myTimelineInstance, myTimelineItems;
 
-        // Helper function to format dates for the tooltip
-        function myFormatDate(myDateString) {
-            return myDateString ? new Date(myDateString).toISOString().slice(0, 10) : 'N/A';
-        }
+    // Helper function to format dates for the tooltip
+    function myFormatDate(myDateString) {
+      return myDateString ? new Date(myDateString).toISOString().slice(0, 10) : 'N/A';
+    }
 
-        function myGetTooltipText(myItem) {
-            let myTitleText = `${myItem.content}, ${myFormatDate(myItem.start)}`;
-            
-            if (myItem.end) {
-                myTitleText += ` to ${myFormatDate(myItem.end)}`;
-            } else {
-                myTitleText += ``;
-            }
-            return myTitleText;
-        }
+    function myGetTooltipText(myItem) {
+      let myTitleText = `${myItem.content}, ${myFormatDate(myItem.start)}`;
+      
+      if (myItem.end) {
+        myTitleText += ` to ${myFormatDate(myItem.end)}`;
+      } else {
+        myTitleText += ``;
+      }
+      return myTitleText;
+    }
 
-        function myInitTimeline() {
-            const myContainer = document.getElementById('myTimeline');
-            
-            // Prepare the base data
-            const myRawItems = [
-                // Point item (will default to type: 'point' or 'box' if no end)
-                { id: 1, content: 'Kickoff', start: '2025-09-01' }, 
-                // 💡 Changed type from 'range' to 'box' as requested
-                { id: 2, content: 'Prototype', start: '2025-09-05', end: '2025-09-08', type: 'box' }, 
-                // Point item
-                { id: 3, content: 'Review', start: '2025-09-10' }
-            ];
-            
-            // Add 'title' property for the native mouseover tooltip
-            const myItemsWithTooltipAndStyle = myRawItems.map(myItem => {
-                return { 
-                    ...myItem, 
-                    title: myGetTooltipText(myItem),
-                    // If no type is explicitly set, make sure range items use 'box' by default
-                    type: myItem.end && !myItem.type ? 'box' : myItem.type
-                };
-            });
-            
-            myTimelineItems = new vis.DataSet(myItemsWithTooltipAndStyle);
+    function myInitTimeline() {
+      const myContainer = document.getElementById('myTimeline');
+      
+      // Prepare the base data
+      const myRawItems = [
+        // Point item (implicitly style: 'point')
+        { id: 1, content: 'Kickoff', start: '2025-09-01' }, 
+        // Range item: 💡 Explicitly setting type: 'box' as requested
+        { id: 2, content: 'Prototype', start: '2025-09-05', end: '2025-09-08', type: 'box' }, 
+        // Point item
+        { id: 3, content: 'Review', start: '2025-09-10' }
+      ];
+      
+      // Add 'title' property for the native mouseover tooltip
+      const myItemsWithTooltipAndStyle = myRawItems.map(myItem => {
+        return { 
+          ...myItem, 
+          title: myGetTooltipText(myItem) 
+        };
+      });
+      
+      myTimelineItems = new vis.DataSet(myItemsWithTooltipAndStyle);
 
-            const myOptions = {
-                stack: true,
-                // 💡 REMOVED restrictive zoomMin/zoomMax settings
-                // zoomMin: 1000 * 60 * 60 * 24, // 1 day
-                // zoomMax: 1000 * 60 * 60 * 24 * 365, // ~1 year
-                orientation: 'top',
-            };
+      const myOptions = {
+        stack: true,
+        // 💡 REMOVED restrictive zoomMin/zoomMax settings to allow any dates
+        // zoomMin: 1000 * 60 * 60 * 24, // 1 day
+        // zoomMax: 1000 * 60 * 60 * 24 * 365, // ~1 year
+        orientation: 'top',
+      };
 
-            myTimelineInstance = new vis.Timeline(myContainer, myTimelineItems, myOptions);
-            myTimelineInstance.fit();
-        }
+      myTimelineInstance = new vis.Timeline(myContainer, myTimelineItems, myOptions);
+      myTimelineInstance.fit();
+    }
 
-        function myAddTodayItem() {
-            const myId = Date.now();
-            const myToday = new Date();
-            const myStartFormatted = myToday.toISOString().slice(0, 10);
-            
-            // New item needs the 'title' property for the tooltip
-            const myNewItem = { 
-                id: myId, 
-                content: 'Today', 
-                start: myStartFormatted 
-            };
-            myNewItem.title = myGetTooltipText(myNewItem);
+    function myAddTodayItem() {
+      const myId = Date.now();
+      const myToday = new Date();
+      const myStartFormatted = myToday.toISOString().slice(0, 10);
+      
+      // New item needs the 'title' property for the tooltip
+      const myNewItem = { 
+        id: myId, 
+        content: 'Today', 
+        start: myStartFormatted 
+      };
+      myNewItem.title = myGetTooltipText(myNewItem);
 
-            myTimelineItems.add(myNewItem);
-            myTimelineInstance.setSelection(myId, { focus: true });
-        }
-        window.myAddTodayItem = myAddTodayItem;
+      myTimelineItems.add(myNewItem);
+      myTimelineInstance.setSelection(myId, { focus: true });
+    }
+    window.myAddTodayItem = myAddTodayItem;
 
-        function myFocusLatestTimelineItem() {
-            const myAll = myTimelineItems.get();
-            if (myAll.length === 0) return;
-            // Sorting by start date to find the latest
-            const mySorted = myAll.slice().sort((a, b) => new Date(a.start) - new Date(b.start));
-            const myLast = mySorted[mySorted.length - 1];
-            myTimelineInstance.setSelection(myLast.id, { focus: true });
-        }
-        window.myFocusLatestTimelineItem = myFocusLatestTimelineItem;
+    function myFocusLatestTimelineItem() {
+      const myAll = myTimelineItems.get();
+      if (myAll.length === 0) return;
+      const mySorted = myAll.slice().sort((a, b) => new Date(a.start) - new Date(b.start));
+      const myLast = mySorted[mySorted.length - 1];
+      myTimelineInstance.setSelection(myLast.id, { focus: true });
+    }
+    window.myFocusLatestTimelineItem = myFocusLatestTimelineItem;
 
-        function myTimelineZoomIn() {
-            myTimelineInstance.zoomIn(0.5);
-        }
-        window.myTimelineZoomIn = myTimelineZoomIn;
+    function myTimelineZoomIn() {
+      myTimelineInstance.zoomIn(0.5);
+    }
+    window.myTimelineZoomIn = myTimelineZoomIn;
 
-        function myTimelineZoomOut() {
-            myTimelineInstance.zoomOut(0.5);
-        }
-        window.myTimelineZoomOut = myTimelineZoomOut;
+    function myTimelineZoomOut() {
+      myTimelineInstance.zoomOut(0.5);
+    }
+    window.myTimelineZoomOut = myTimelineZoomOut;
 
-        // ========== BOOTSTRAP EVERYTHING ==========
-        // Run immediately once page loads
-        (function(){ myInitTimeline(); })();
-    </script>
+    // ========== BOOTSTRAP EVERYTHING ==========
+    // Run immediately once page loads
+    (function(){ myInitTimeline(); })();
+  </script>
 
-    <p style="margin-top:24px; font-size:12px; color:#555;">
-        Notes: This demo uses the modern vis package from UNPKG CDN:
-        <code>vis-timeline</code>.
-    </p>
+  <p style="margin-top:24px; font-size:12px; color:#555;">
+    Notes: This demo uses the modern vis package from UNPKG CDN:
+    <code>vis-timeline</code>.
+  </p>
 </body>
 </html>
